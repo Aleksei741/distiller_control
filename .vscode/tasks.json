@@ -1,0 +1,187 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "ESP-IDF: Set Environment",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "call \"${config:idf.idfPath}\\export.bat\""
+            ],
+            "options": {
+                "env": {
+                    "IDF_PATH": "${config:idf.idfPath}",
+                    "IDF_TOOLS_PATH": "${config:idf.idfToolsPath}",
+                    "PYTHON": "${config:idf.pythonBinPath}"
+                }
+            },
+            "presentation": {
+                "reveal": "silent"
+            }
+        },
+
+        {
+            "label": "ESP-IDF: Build",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "call \"${config:idf.idfPath}\\export.bat\" && idf.py build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "IDF_PATH": "${config:idf.idfPath}",
+                    "IDF_TOOLS_PATH": "${config:idf.idfToolsPath}",
+                    "PYTHON": "${config:idf.pythonBinPath}"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            },
+            "problemMatcher": ["$gcc"]
+        },
+
+        {
+            "label": "ESP-IDF: Flash",
+            "dependsOn": "ESP-IDF: Build",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "call \"${config:idf.idfPath}\\export.bat\" && idf.py -p ${config:idf.comPort} flash"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "IDF_PATH": "${config:idf.idfPath}",
+                    "IDF_TOOLS_PATH": "${config:idf.idfToolsPath}",
+                    "PYTHON": "${config:idf.pythonBinPath}"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+
+        {
+            "label": "ESP-IDF: Monitor",
+            "dependsOn": "ESP-IDF: Build",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "call \"${config:idf.idfPath}\\export.bat\" && idf.py -p ${config:idf.comPort} monitor"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "IDF_PATH": "${config:idf.idfPath}",
+                    "IDF_TOOLS_PATH": "${config:idf.idfToolsPath}",
+                    "PYTHON": "${config:idf.pythonBinPath}"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+
+        {
+            "label": "ESP-IDF: Clean",
+            "dependsOn": "ESP-IDF: Build",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "call \"${config:idf.idfPath}\\export.bat\" && idf.py fullclean"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "IDF_PATH": "${config:idf.idfPath}",
+                    "IDF_TOOLS_PATH": "${config:idf.idfToolsPath}",
+                    "PYTHON": "${config:idf.pythonBinPath}"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+
+        {
+            "label": "ESP-IDF: Test",
+            "dependsOn": "ESP-IDF: Build",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "call \"${config:idf.idfPath}\\export.bat\" && pytest -v ${workspaceFolder}/tests"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "IDF_PATH": "${config:idf.idfPath}",
+                    "IDF_TOOLS_PATH": "${config:idf.idfToolsPath}",
+                    "PYTHON": "${config:idf.pythonBinPath}"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+
+        {
+            "label": "ESP-IDF: Install",
+            "type": "shell",
+            "command": "\"${workspaceFolder}/tools/install_idf.bat\"",
+            "args": [
+                "${config:idf.idfPath}",
+                "${config:idf.idfToolsPath}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/tools",
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+
+        {
+            "label": "ESP-IDF Menuconfig",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/k",
+                "call \"${config:idf.idfPath}\\export.bat\" && idf.py menuconfig"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

@@ -1,0 +1,7 @@
+{
+    "idf.idfPath": "C:/esp/esp-idf",
+    "idf.idfToolsPath": "C:/esp/tools", 
+    "idf.pythonBinPath": "C:/esp/tools/python_env/idf6.0_py3.14_env/Scripts/python.exe",
+    "idf.comPort": "COM5",
+
+}
