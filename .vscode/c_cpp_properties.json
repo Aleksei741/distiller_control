@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "ESP32",
+            "intelliSenseMode": "windows-gcc-x64",
+            "compilerPath": "${config:idf.idfToolsPath}/tools/xtensa-esp-elf/esp-15.2.0_20250929/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "includePath": [
+                "${workspaceFolder}/main/**",
+                "${config:idf.idfPath}/components/**"
+            ],
+            "defines": [
+                "ESP_PLATFORM"
+            ]
+        }
+    ],
+    "version": 4
+}

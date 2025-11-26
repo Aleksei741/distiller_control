@@ -74,7 +74,7 @@
 
         {
             "label": "ESP-IDF: Monitor",
-            "dependsOn": "ESP-IDF: Build",
+            "dependsOn": "ESP-IDF: Flash",
             "type": "shell",
             "command": "cmd",
             "args": [
@@ -99,7 +99,6 @@
 
         {
             "label": "ESP-IDF: Clean",
-            "dependsOn": "ESP-IDF: Build",
             "type": "shell",
             "command": "cmd",
             "args": [
@@ -175,7 +174,12 @@
                 "call \"${config:idf.idfPath}\\export.bat\" && idf.py menuconfig"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "IDF_PATH": "${config:idf.idfPath}",
+                    "IDF_TOOLS_PATH": "${config:idf.idfToolsPath}",
+                    "PYTHON": "${config:idf.pythonBinPath}"
+                }
             },
             "presentation": {
                 "reveal": "always",
