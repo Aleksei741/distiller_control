@@ -1,10 +1,13 @@
 set(SOURCES
     main.c
+    parameters/parameters.c
+    wifiServer/wifi_control.c
 )
 
 set(INCLUDES
     "."
     wifiServer
+    parameters
 )
 
 idf_component_register(SRCS ${SOURCES}

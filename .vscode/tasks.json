@@ -7,7 +7,7 @@
             "command": "cmd",
             "args": [
                 "/c",
-                "call \"${config:idf.idfPath}\\export.bat\""
+                "call \"${config:idf.idfPath}/export.bat\""
             ],
             "options": {
                 "env": {
@@ -27,7 +27,7 @@
             "command": "cmd",
             "args": [
                 "/c",
-                "call \"${config:idf.idfPath}\\export.bat\" && idf.py build"
+                "call \"${config:idf.idfPath}/export.bat\" && idf.py build"
             ],
             "options": {
                 "cwd": "${workspaceFolder}",

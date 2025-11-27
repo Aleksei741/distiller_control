@@ -1,8 +1,9 @@
 {
-    "idf.idfPath": "D:/esp/esp-idf",
-    "idf.idfToolsPath": "D:/esp/tools", 
-    "idf.pythonBinPath": "D:/esp/tools/python_env/idf6.0_py3.14_env/Scripts/python.exe",
-    "idf.comPort": "COM6",
+    "idf.idfDisk": "C",
+    "idf.idfPath": "${config:idf.idfDisk}:/esp/esp-idf",
+    "idf.idfToolsPath": "${config:idf.idfDisk}:/esp/tools", 
+    "idf.pythonBinPath": "${config:idf.idfDisk}:/esp/tools/python_env/idf6.0_py3.11_env/Scripts/python.exe",
+    "idf.comPort": "COM3",
 
     "terminal.integrated.defaultProfile.windows": "Command Prompt",
     "terminal.integrated.profiles.windows": {
@@ -10,5 +11,11 @@
             "path": "cmd.exe"
         }
     },
-    "terminal.integrated.windowsEnableConpty": false
+    "terminal.integrated.windowsEnableConpty": false,
+    "files.associations": {
+        "format": "c",
+        "esp_log.h": "c",
+        "string.h": "c",
+        "esp_err.h": "c"
+    }
 }
