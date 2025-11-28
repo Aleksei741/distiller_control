@@ -66,6 +66,7 @@ httpd_handle_t start_webserver(void)
 
 void app_main(void) 
 {
+    wifi_init();
     parameters_init();
     gpio_set_direction(LED_GPIO, GPIO_MODE_OUTPUT);
     
