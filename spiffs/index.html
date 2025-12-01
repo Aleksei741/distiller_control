@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gin Column Control</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Управление Джин Колонной</h1>
+    </header>
+
+    <main>
+        <section id="status-section">
+            <h2>Текущее Состояние</h2>
+            <div id="status-display">
+                <p>Куб: <span id="temp-cube">--</span> °C</p>
+                <p>Колонна: <span id="temp-col">--</span> °C</p>
+                <p>Мощность ТЭНа: <span id="power-val">--</span> %</p>
+                <p>Режим: <span id="current-mode">--</span></p>
+            </div>
+            
+            <div id="column-image-container">
+                <img src="images/column.png" alt="Схема колонны" class="column-img">
+            </div>
+        </section>
+
+        <section id="chart-section">
+            <h2>График Температур и Мощности</h2>
+            <canvas id="tempChart"></canvas> 
+        </section>
+
+        <section id="control-section">
+            <h2>Управление</h2>
+            <label for="mode-select">Выбор режима:</label>
+            <select id="mode-select">
+                <option value="manual">Ручной</option>
+                <option value="auto_heat">Авто: Разгон</option>
+                <option value="auto_stab">Авто: Стабилизация</option>
+                <option value="auto_head">Авто: Отбор Голов</option>
+                </select>
+
+            <div id="manual-controls" class="control-group">
+                <h3>Ручной режим</h3>
+                <label for="power-input">Мощность ТЭНа (%):</label>
+                <input type="number" id="power-input" min="0" max="100" value="0">
+                <button onclick="setPower()">Установить</button>
+            </div>
+            
+        </section>
+
+        <section id="config-section">
+            <h2>Настройки</h2>
+            <button onclick="showWifiConfig()">Настройка Wi-Fi</button>
+            <button onclick="showPidConfig()">Настройка Автоматики</button>
+            </section>
+    </main>
+	
+	<footer style="text-align: right; margin-top: 50px;">
+        <label>Статус LED:</label>
+        <button id="led-on-btn" onclick="toggleLED(1)">Вкл</button>
+        <button id="led-off-btn" onclick="toggleLED(0)">Выкл</button>
+    </footer>
+
+    <script src="chart_lib.js"></script>
+    <script src="app.js"></script>
+
+</body>
+</html>
