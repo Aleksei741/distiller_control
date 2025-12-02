@@ -55,8 +55,18 @@ echo Switching to release/v6.0
 git fetch --all
 git switch release/v6.0
 
+REM Submodule update
+echo Updating submodules...
+git submodule update --init --recursive
+
 REM Вызываем install.bat
 echo Running install.bat
 call install.bat
+
+echo Running export.bat...
+call export.bat
+
+echo Checking installed tools...
+idf_tools.py list
 
 echo ESP-IDF installation completed!

@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "esp_netif.h"
+#include "lwip/ip4_addr.h"
 //******************************************************************************
 // Cinstants
 //******************************************************************************
@@ -52,8 +53,7 @@ void wifi_init(void)
     // Создание цикла обработки событий по умолчанию
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    // 2. Создание сетевых интерфейсов
-    // Создание экземпляров netif для AP и STA.
+    // 2. Создание сетевых интерфейсов по умолчанию
     esp_netif_create_default_wifi_ap();
     esp_netif_create_default_wifi_sta();
 
@@ -74,9 +74,6 @@ void wifi_start_ap_sta(const wifi_settings_t *cfg_sta, const wifi_settings_t *cf
     strncpy(g_ap_cfg.ssid, cfg_ap->ssid, sizeof(g_ap_cfg.ssid));
     strncpy(g_ap_cfg.pass, cfg_ap->pass, sizeof(g_ap_cfg.pass));
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
     // --- Конфигурация STA ---
     wifi_config_t sta_cfg = {0};
     strcpy((char*)sta_cfg.sta.ssid, g_sta_cfg.ssid);
@@ -92,18 +89,55 @@ void wifi_start_ap_sta(const wifi_settings_t *cfg_sta, const wifi_settings_t *cf
     if (strlen(g_ap_cfg.pass) == 0) 
         ap_cfg.ap.authmode = WIFI_AUTH_OPEN;
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    bool sta_enabled = (strlen((const char*)sta_cfg.sta.ssid) > 0);
 
-    ESP_LOGI(TAG, "wifi_start_ap_sta. STA SSID=%s, PASS=%s", 
-        sta_cfg.sta.ssid, sta_cfg.sta.password);
+    if (sta_enabled) 
+    {        
+        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
+        
+        ESP_LOGI(TAG, "wifi_start_ap_sta. STA SSID=%s, PASS=%s", 
+            sta_cfg.sta.ssid, sta_cfg.sta.password);
 
-    ESP_LOGI(TAG, "wifi_start_ap_sta. AP SSID=%s, PASS=%s", 
-        ap_cfg.ap.ssid, ap_cfg.ap.password);
-
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP,  &ap_cfg));
+        ESP_LOGI(TAG, "wifi_start_ap_sta. AP SSID=%s, PASS=%s", 
+            ap_cfg.ap.ssid, ap_cfg.ap.password);
+        
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP,  &ap_cfg));
+    } 
+    else 
+    {
+        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+        ESP_LOGW(TAG, "wifi_start_ap_sta. STA disabled (empty SSID)");
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP,  &ap_cfg));
+    }
     ESP_ERROR_CHECK(esp_wifi_start());
-    ESP_ERROR_CHECK(esp_wifi_connect());
+
+    esp_netif_t* ap_netif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+    if (ap_netif) {
+        // Назначаем статический IP для AP
+        esp_netif_ip_info_t ip_info;
+        memset(&ip_info, 0, sizeof(esp_netif_ip_info_t));
+        
+        // IP адрес точки доступа: 192.168.4.1
+        ip_info.ip.addr = ipaddr_addr("192.168.4.1");
+        ip_info.gw.addr = ipaddr_addr("192.168.4.1");     // Шлюз = сам AP
+        ip_info.netmask.addr = ipaddr_addr("255.255.255.0");
+        
+        esp_netif_set_ip_info(ap_netif, &ip_info);
+        
+        ESP_LOGI(TAG, "AP IP address set to: 192.168.4.1");
+    }
+
+    if (sta_enabled) 
+    {
+        ESP_ERROR_CHECK(esp_wifi_connect());
+        ESP_LOGI(TAG, "Connecting to STA network...");
+    } 
+    else 
+    {
+        ESP_LOGI(TAG, "Running in AP-only mode");
+    }
 }
 
 //------------------------------------------------------------------------------
