@@ -55,6 +55,8 @@ esp_err_t index_handler(httpd_req_t *req);
 esp_err_t css_handler(httpd_req_t *req);
 esp_err_t js_handler(httpd_req_t *req);
 esp_err_t led_handler(httpd_req_t *req);
+esp_err_t img_handler(httpd_req_t *req);
+esp_err_t chartjs_handler(httpd_req_t *req);
 //******************************************************************************
 // Function
 //******************************************************************************
@@ -78,9 +80,13 @@ httpd_handle_t start_webserver(void)
         httpd_uri_t index_uri = { .uri = "/", .method = HTTP_GET, .handler = index_handler };
         httpd_uri_t css_uri = { .uri = "/style.css", .method = HTTP_GET, .handler = css_handler };
         httpd_uri_t js_uri = { .uri = "/app.js", .method = HTTP_GET, .handler = js_handler };
+        httpd_uri_t img_uri = { .uri = "/9hq.webp", .method = HTTP_GET, .handler = img_handler };
+        httpd_uri_t chartjs_uri = { .uri = "/chart.umd.min.js", .method = HTTP_GET, .handler = chartjs_handler };
         httpd_register_uri_handler(server, &index_uri);
         httpd_register_uri_handler(server, &css_uri);
         httpd_register_uri_handler(server, &js_uri);
+        httpd_register_uri_handler(server, &img_uri);
+        httpd_register_uri_handler(server, &chartjs_uri);
 
         // Регистрация URI обработчиков для управления светодиодом
         httpd_uri_t led_on_uri = { .uri = "/led/on", .method = HTTP_GET, .handler = led_handler };
@@ -158,6 +164,16 @@ esp_err_t css_handler(httpd_req_t *req)
 esp_err_t js_handler(httpd_req_t *req)
 {
     return send_file(req, "/spiffs/app.js", "application/javascript");
+}
+//------------------------------------------------------------------------------
+esp_err_t img_handler(httpd_req_t *req)
+{
+    return send_file(req, "/spiffs/9hq.webp", "application/javascript");
+}
+//------------------------------------------------------------------------------
+esp_err_t chartjs_handler(httpd_req_t *req)
+{
+    return send_file(req, "/spiffs/chart.umd.min.js", "application/javascript");
 }
 //------------------------------------------------------------------------------
 esp_err_t led_handler(httpd_req_t *req) 

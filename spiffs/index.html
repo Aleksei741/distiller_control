@@ -7,69 +7,161 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Модальное окно для Wi-Fi AP -->
+    <div id="wifi-AP-modal" class="wifi-AP-modal">
+        <div class="wifi-modal-content">
+            <h3 class="wifi-modal-title">Настройка точки доступа</h3>
+            <div class="wifi-form-group">
+                <input type="text" id="ap-ssid" placeholder="SSID AP">
+                <input type="password" id="ap-pass" placeholder="Пароль">
+            </div>
+            <div class="wifi-button-group">
+                <button onclick="setupAP()">Задать</button>
+                <button onclick="hideAPmodal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для Wi-Fi STA -->
+    <div id="wifi-STA-modal" class="wifi-STA-modal">
+        <div class="wifi-modal-content">
+            <h3 class="wifi-modal-title">Подключение к роутеру</h3>
+            <div>
+                <div class="wifi-form-group"></div>
+                    <input type="text" id="sta-ssid" placeholder="SSID">
+                    <input type="password" id="sta-pass" placeholder="Пароль">
+                </div>
+                <div class="wifi-button-group"> 
+                    <button onclick="connectSTA()">Подключить</button>
+                    <button onclick="hideSTAmodal()">Отмена</button>
+                </div>
+                <div class="wifi-button-scanNetworks"> 
+                    <button onclick="scanNetworks()">Сканировать сети</button>
+                </div>
+                <ul id="wifi-list"></ul>
+            </div>
+        </div>
+    </div>
+
     <header>
         <h1>Управление Джин Колонной</h1>
     </header>
+    <div class="container">
+        
 
-    <section id="wifi-section">
-        <h2>Настройка Wi-Fi</h2>
-        <div>
-            <h3>STA (подключение к роутеру)</h3>
-            <input type="text" id="sta-ssid" placeholder="SSID">
-            <input type="password" id="sta-pass" placeholder="Пароль">
-            <button onclick="connectSTA()">Подключить</button>
-            <button onclick="scanNetworks()">Сканировать сети</button>
-            <ul id="wifi-list"></ul>
-        </div>
-        <div>
-            <h3>AP (ESP32 как точка доступа)</h3>
-            <input type="text" id="ap-ssid" placeholder="SSID AP">
-            <input type="password" id="ap-pass" placeholder="Пароль">
-            <button onclick="setupAP()">Настроить AP</button>
-        </div>
-    </section>
+        <section id="control-panel">
+            <h2>Панель управления</h2>
+            <button onclick="showAPmodal()">AP</button>
+            <button onclick="showSTAmodal()">STA</button>
+            <button onclick="beep(2000, 10)">Запуск процесса</button>
+            <button onclick="stopProcess()">Стоп</button>
+        </section>        
 
-    <section id="status-section">
-        <h2>Состояние</h2>
-        <div id="column-image">
-            <img src="column.png" alt="Колонна">
-        </div>
-        <div id="temperatures">
-            <p>Температура куба: <span id="temp-cube">--</span> °C</p>
-            <p>Температура колонны: <span id="temp-column">--</span> °C</p>
-            <p>Мощность ТЭНа: <span id="ten-power">--</span> %</p>
-        </div>
-        <canvas id="chart" width="600" height="300"></canvas>
-    </section>
+        <section id="status-section">
 
-    <section id="control-section">
-        <h2>Управление</h2>
-        <div>
-            <label>
-                <input type="radio" name="mode" value="manual" checked> Ручной
-            </label>
-            <label>
-                <input type="radio" name="mode" value="auto"> Автоматический
-            </label>
-        </div>
+            <svg id="column-svg" viewBox="0 0 300 520" style="width:260px; display:block; margin:0 auto;">
+                
+                <!-- Куб -->
+                <rect x="80" y="360" width="140" height="140" rx="12" fill="#d0d0d0" stroke="#444" stroke-width="3"/>
+                <text x="150" y="455" text-anchor="middle" font-size="16">Куб</text>
+                <circle id="vapor" cx="150" cy="360" r="5" fill="orange"/>
 
-        <div id="manual-control">
-            <input type="range" id="manual-power" min="0" max="100" value="50">
-            <span id="manual-power-value">50%</span>
-            <button onclick="setManualPower()">Установить мощность</button>
-        </div>
+                <!-- Метки около куба -->
+                <text id="temp-cube-label" x="150" y="390" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
+                    🌡️ <tspan id="temp-cube">--</tspan>°C
+                </text>
+                <text id="ten-power-label" x="150" y="420" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
+                    ⚗️ <tspan id="ten-power">--</tspan>%
+                </text>
 
-        <div id="auto-control" style="display:none;">
-            <select id="auto-stage">
-                <option value="1">Этап 1</option>
-                <option value="2">Этап 2</option>
-                <option value="3">Этап 3</option>
-            </select>
-            <button onclick="setAutoStage()">Выбрать этап</button>
-        </div>
+                <!-- Колонна -->
+                <rect x="140" y="140" width="20" height="220" fill="#e0e0e0" stroke="#444" stroke-width="3"/>
 
-        <button onclick="toggleLED()">LED Вкл/Выкл</button>
-    </section>
+                <!-- Соединение дефлегматора с холодильником -->
+                <rect x="140" y="25" width="20" height="60" rx="12" fill="#e0e0e0" stroke="#444" stroke-width="3"/>
+                <rect x="200" y="25" width="20" height="60" rx="12" fill="#e0e0e0" stroke="#444" stroke-width="3"/>
+                <rect x="140" y="25" width="80" height="20" rx="12" fill="#e0e0e0" stroke="#444" stroke-width="3"/>
+                
+                <!-- Дефлегматор -->
+                <rect x="130" y="70" width="40" height="110" rx="10" fill="#d0d0d0" stroke="#444" stroke-width="3"/>
+                <text x="285" y="35" text-anchor="middle" transform="rotate(-90 265 145)" font-size="14">Дефлегматор</text>
+                
+                <!-- Холодильник -->
+                <rect x="190" y="70" width="40" height="200" rx="10" fill="#c0c0c0" stroke="#444" stroke-width="3"/>
+                <text x="250" y="95" text-anchor="middle" font-size="14" transform="rotate(-90 265 145)">Холодильник</text>
+
+                <!-- Выход продукта -->
+                <line x1="210" y1="270" x2="210" y2="290" stroke="#444" stroke-width="3"/>
+                <circle cx="210" cy="290" r="5" fill="#444"/>
+
+                <!-- Метка температуры колонны между дефлегматором и холодильником -->
+                <text id="temp-column-label" x="180" y="20" text-anchor="middle" font-size="20" fill="#fff" stroke="#000" stroke-width="3" paint-order="stroke">
+                    🌡️ <tspan id="temp-column">--</tspan>°C
+                </text>
+            </svg>
+
+            <div id="temperatures" style="text-align:center;">
+                <!-- Здесь могут остаться текстовые дубли, если нужны -->
+            </div>
+
+            <canvas id="chart" width="600" height="300"></canvas>
+        </section>
+
+        <section id="control-section">
+            <h2>Управление</h2>
+            <div>
+                <label>
+                    <input type="radio" name="mode" value="manual" checked> Ручной
+                </label>
+                <label>
+                    <input type="radio" name="mode" value="auto"> Автоматический
+                </label>
+            </div>
+
+            <div id="manual-control">
+                <input type="range" id="manual-power" min="0" max="100" value="50">
+                <span id="manual-power-value">50%</span>
+                <button onclick="setManualPower()">Установить мощность</button>
+            </div>
+
+            <div id="auto-control" style="display:none;">
+                <select id="auto-stage">
+                    <option value="1">Этап 1</option>
+                    <option value="2">Этап 2</option>
+                    <option value="3">Этап 3</option>
+                </select>
+                <button onclick="setAutoStage()">Выбрать этап</button>
+            </div>
+
+            <button onclick="toggleLED()">LED Вкл/Выкл</button>
+        </section>
+    </div>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M5 12.55a11 11 0 0 1 14 0"/>
+        <path d="M1 8a15 15 0 0 1 22 0"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+        <path d="M12 20h.01"/>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2a10 10 0 0 1 10 10"/>
+        <path d="M12 2a10 10 0 0 0-10 10"/>
+    </svg>
+
+    <!-- Значок настроек (шестерёнка) -->
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l0 0a2 2 0 0 1-2.83 2.83l0 0a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v0a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l0 0a2 2 0 0 1-2.83-2.83l0 0a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h0a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l0 0a2 2 0 0 1 2.83-2.83l0 0a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v0a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l0 0a2 2 0 0 1 2.83 2.83l0 0a1.65 1.65 0 0 0-.33 1.82h0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h0a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+
+    <!-- Значок основного окна (панель управления) -->
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="3" y1="9" x2="21" y2="9"></line>
+        <line x1="9" y1="21" x2="9" y2="9"></line>
+    </svg>
 
     <script src="chart.umd.min.js"></script>
     <script src="app.js"></script>

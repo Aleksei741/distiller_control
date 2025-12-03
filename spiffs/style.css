@@ -14,10 +14,40 @@ header {
 
 section {
     padding: 20px;
-    margin: 10px;
-    background: #fff;
+    margin: 20px 10px;
+    background: linear-gradient(135deg, #16204b, #027ffd);
+    background-size: 300% 300%;
+    animation: gradientFlow 16s cubic-bezier(0.77, 0, 0.175, 1) ease infinite;
     border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    color: #fff; /* Чтобы текст хорошо читался */
+}
+
+@keyframes gradientFlow {
+    0%   { background-position:   0% 100%; }
+    10%  { background-position:  20% 80%; }
+    25%  { background-position:  50% 50%; }
+    40%  { background-position:  80% 20%; }
+    50%  { background-position: 100% 0%; }
+    60%  { background-position:  80% 20%; }
+    75%  { background-position:  50% 50%; }
+    90%  { background-position:  20% 80%; }
+    100% { background-position:   0% 100%; }
+}
+
+
+.container {
+    max-width: 600px; /* Ограничение максимальной ширины */
+    width: 100%; /* Занимает всю доступную ширину */
+    margin: 0 auto; /* Центрирование по горизонтали */
+    padding: 0px 20px; /* Отступы по бокам */
+    box-sizing: border-box; /* Чтобы padding не увеличивал ширину */
+}
+
+.container section {
+    max-width: 100%; /* Не превышать ширину контейнера */
+    margin: 20px auto; /* Центрирование и отступы сверху/снизу */
+    box-sizing: border-box; /* Важно для корректного расчета ширины */
 }
 
 input, select, button {
@@ -36,3 +66,128 @@ input, select, button {
     display: block;
     margin: 10px auto;
 }
+
+#control-panel {
+    text-align: center;
+    margin: 20px auto;
+}
+#control-panel button {
+    margin: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: none;
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
+#control-panel button:hover {
+    background-color: #45a049;
+}
+
+
+
+/*=============================================================*/
+/* wifi STA */
+.wifi-STA-modal {
+    display: none; /* Скрыто по умолчанию */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+
+/* wifi ap */
+.wifi-AP-modal {
+    display: none; /* Скрыто по умолчанию */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.wifi-modal-content {
+    background-color: #f9f9f9;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    color: #222;
+    text-align: center; /* Всё внутри по центру */
+}
+
+.wifi-modal-title {
+    margin-bottom: 15px;
+}
+
+/* Поля ввода по центру и одинаковой ширины */
+.wifi-form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* центрируем поля */
+}
+
+.wifi-form-group input {
+    width: 80%; /* или любая желаемая ширина */
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+/* Кнопки под полями */
+.wifi-button-group {
+    display: flex;
+    justify-content: center; /* центрируем кнопки */
+    gap: 10px; /* расстояние между кнопками */
+    margin-top: 10px;
+}
+
+.wifi-button-group button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    background-color: #414141;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.wifi-button-scanNetworks button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    background-color: #414141;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    width: 70%;
+}
+
+.wifi-button-scanNetworks button:hover {
+    background-color: #4d4e4c;
+}
+
+.wifi-button-group button:hover {
+    background-color: #4d4e4c;
+}
+
+#wifi-list li {
+    padding: 6px 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #ddd;
+}
+
+#wifi-list li:hover {
+    background-color: #eee;
+}
+/*=============================================================*/

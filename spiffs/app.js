@@ -1,3 +1,12 @@
+let y = 360;
+function animateVapor() {
+    y -= 1;
+    if (y < 140) y = 360;
+    document.getElementById('vapor').setAttribute('cy', y);
+    requestAnimationFrame(animateVapor);
+}
+animateVapor();
+
 // Режим управления
 document.querySelectorAll('input[name="mode"]').forEach(el => {
     el.addEventListener('change', () => {
@@ -15,36 +24,8 @@ document.getElementById('manual-power').addEventListener('input', (e) => {
     document.getElementById('manual-power-value').innerText = e.target.value + '%';
 });
 
-// Функции Wi-Fi
-function scanNetworks() {
-    fetch('/api/wifi/scan')
-        .then(res => res.json())
-        .then(data => {
-            const list = document.getElementById('wifi-list');
-            list.innerHTML = '';
-            data.forEach(net => {
-                const li = document.createElement('li');
-                li.innerText = `${net.ssid} (${net.rssi} dBm)`;
-                list.appendChild(li);
-            });
-        });
-}
 
-function connectSTA() {
-    const ssid = document.getElementById('sta-ssid').value;
-    const pass = document.getElementById('sta-pass').value;
-    fetch(`/api/wifi/connect?ssid=${ssid}&pass=${pass}`)
-        .then(res => res.json())
-        .then(alert);
-}
 
-function setupAP() {
-    const ssid = document.getElementById('ap-ssid').value;
-    const pass = document.getElementById('ap-pass').value;
-    fetch(`/api/wifi/ap?ssid=${ssid}&pass=${pass}`)
-        .then(res => res.json())
-        .then(alert);
-}
 
 // Управление ТЭНом
 function setManualPower() {
@@ -129,3 +110,91 @@ setInterval(() => {
             chart.update();
         });
 }, 1000);
+
+// Звуковой сигнал
+function beep(frequency = 440, duration = 200) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    oscillator.type = 'square'; // тип сигнала: sine, square, sawtooth, triangle
+    oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
+    oscillator.connect(ctx.destination);
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + duration / 1000);
+}
+
+//==========================================================================
+// Функции для работы с модалками Wi-Fi AP
+// Показываем модалку
+function showAPmodal() {
+    document.getElementById('wifi-AP-modal').style.display = 'block';
+}
+
+// Скрываем модалку
+function hideAPmodal() {
+    document.getElementById('wifi-AP-modal').style.display = 'none';
+}
+
+// Применение настройки AP
+function setupAP() {
+    const ssid = document.getElementById('ap-ssid').value;
+    const pass = document.getElementById('ap-pass').value;
+    fetch(`/api/wifi/ap?ssid=${ssid}&pass=${pass}`)
+        .then(res => res.json())
+        .then(alert);
+    hideAPmodal();
+}
+
+
+//==========================================================================
+// Функции для работы с модалками Wi-Fi STA
+// Показываем модалку
+function showSTAmodal() {
+    document.getElementById('wifi-STA-modal').style.display = 'block';
+}
+
+// Скрываем модалку
+function hideSTAmodal() {
+    document.getElementById('wifi-STA-modal').style.display = 'none';
+}
+
+// Пример подключения
+function connectSTA() {
+    const ssid = document.getElementById('sta-ssid').value;
+    const pass = document.getElementById('sta-pass').value;
+    fetch(`/api/wifi/connect?ssid=${ssid}&pass=${pass}`)
+        .then(res => res.json())
+        .then(alert);
+    hideSTAmodal();
+}
+
+// Сканирование сетей через ESP32
+function scanNetworks() {
+    const listEl = document.getElementById('wifi-list');
+    listEl.innerHTML = '<li>Сканирование...</li>';
+
+    // Пример fetch: ESP32 должен отдавать JSON с массивом сетей
+    fetch('/scan') // URL на ESP32, который возвращает [{ssid: "MyWiFi", rssi: -50}, ...]
+        .then(response => response.json())
+        .then(data => {
+            listEl.innerHTML = '';
+            data.forEach(net => {
+                const li = document.createElement('li');
+                li.textContent = `${net.ssid} (${net.rssi} dBm)`;
+                li.addEventListener('click', () => {
+                    document.getElementById('sta-ssid').value = net.ssid;
+                });
+                listEl.appendChild(li);
+            });
+        })
+        .catch(err => {
+            listEl.innerHTML = '<li>Ошибка сканирования</li>';
+            console.error(err);
+        });
+}
+
+// [
+//   {"ssid": "HomeWiFi", "rssi": -45},
+//   {"ssid": "Guest", "rssi": -70},
+//   {"ssid": "CafeNet", "rssi": -80}
+// ]
+//==========================================================================
