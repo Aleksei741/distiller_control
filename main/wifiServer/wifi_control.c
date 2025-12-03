@@ -139,38 +139,44 @@ void wifi_start_ap_sta(const wifi_settings_t *cfg_sta, const wifi_settings_t *cf
         ESP_LOGI(TAG, "Running in AP-only mode");
     }
 }
-
 //------------------------------------------------------------------------------
 void wifi_reinit_sta(const wifi_settings_t *new_cfg_sta)
 {
-    // 1. Сохранение нового конфига
+    if (!new_cfg_sta) return;
+
+    // 1. Сохраняем новый конфиг
     strncpy(g_sta_cfg.ssid, new_cfg_sta->ssid, sizeof(g_sta_cfg.ssid));
     strncpy(g_sta_cfg.pass, new_cfg_sta->pass, sizeof(g_sta_cfg.pass));
 
-    //ESP_ERROR_CHECK(esp_wifi_stop());
-
-    // 2. Подготовка новой структуры конфига
+    // 2. Подготовка структуры конфигурации STA
     wifi_config_t sta_cfg = {0};
     strcpy((char*)sta_cfg.sta.ssid, g_sta_cfg.ssid);
     strcpy((char*)sta_cfg.sta.password, g_sta_cfg.pass);
 
     ESP_LOGI(TAG, "wifi_reinit_sta. STA SSID=%s, PASS=%s", 
-        sta_cfg.ap.ssid, sta_cfg.ap.password);
+             sta_cfg.sta.ssid, sta_cfg.sta.password);
 
-    // 3. Установка нового конфига
+    // 3. Разрываем текущее соединение STA, если было
+    ESP_ERROR_CHECK(esp_wifi_disconnect());
+
+    // 4. Устанавливаем новый конфиг
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
 
-    // 4. Попытка подключения с новыми настройками
-    //ESP_ERROR_CHECK(esp_wifi_start());
+    // 5. Подключаемся к новой сети
     ESP_ERROR_CHECK(esp_wifi_connect());
+
+    ESP_LOGI(TAG, "Reconnecting to new STA network...");
 }
 //------------------------------------------------------------------------------
 void wifi_reinit_ap(const wifi_settings_t *new_cfg_ap)
 {
-    // Сохраняем строки в глобальные переменные
+    if (!new_cfg_ap) return;
+
+    // 1. Сохраняем новые настройки в глобальные переменные
     strncpy(g_ap_cfg.ssid, new_cfg_ap->ssid, sizeof(g_ap_cfg.ssid));
     strncpy(g_ap_cfg.pass, new_cfg_ap->pass, sizeof(g_ap_cfg.pass));
 
+    // 2. Формируем структуру конфигурации AP
     wifi_config_t ap_cfg = {
         .ap = {.max_connection = 4, .authmode = WIFI_AUTH_WPA2_PSK}
     };
@@ -178,18 +184,30 @@ void wifi_reinit_ap(const wifi_settings_t *new_cfg_ap)
     strcpy((char*)ap_cfg.ap.ssid, g_ap_cfg.ssid);
     strcpy((char*)ap_cfg.ap.password, g_ap_cfg.pass);
 
-    ESP_LOGI(TAG, "wifi_reinit_ap. AP SSID=%s, PASS=%s", 
-        ap_cfg.ap.ssid, ap_cfg.ap.password);
-
     if (strlen(g_ap_cfg.pass) == 0)
         ap_cfg.ap.authmode = WIFI_AUTH_OPEN;
 
-    // Просто применяем новые настройки AP
+    ESP_LOGI(TAG, "wifi_reinit_ap. AP SSID=%s, PASS=%s", 
+             ap_cfg.ap.ssid, ap_cfg.ap.password);
+
+    // 3. Применяем новые настройки AP без остановки Wi‑Fi
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
 
-    // Дополнительно можно "перезапустить" рекламу AP без остановки STA:
-    ESP_ERROR_CHECK(esp_wifi_stop());
-    ESP_ERROR_CHECK(esp_wifi_start());
+    // 4. Обновляем IP для AP (если нужен статический)
+    esp_netif_t* ap_netif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+    if (ap_netif) {
+        esp_netif_ip_info_t ip_info;
+        memset(&ip_info, 0, sizeof(ip_info));
+
+        ip_info.ip.addr = ipaddr_addr("192.168.4.1");
+        ip_info.gw.addr = ipaddr_addr("192.168.4.1");
+        ip_info.netmask.addr = ipaddr_addr("255.255.255.0");
+
+        esp_netif_set_ip_info(ap_netif, &ip_info);
+        ESP_LOGI(TAG, "AP IP address set to: 192.168.4.1");
+    }
+
+    ESP_LOGI(TAG, "AP configuration updated successfully");
 }
 //------------------------------------------------------------------------------
 int wifi_scan_ap(scanned_ap_info_t *ap_list, int max_count)

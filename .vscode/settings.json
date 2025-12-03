@@ -1,5 +1,5 @@
 {
-    "idf.idfDisk": "D",
+    "idf.idfDisk": "C",
     "idf.idfPath": "${config:idf.idfDisk}:/esp/esp-idf",
     "idf.idfToolsPath": "${config:idf.idfDisk}:/esp/tools", 
     "idf.pythonBinPath": "${config:idf.idfDisk}:/esp/tools/python_env/idf6.0_py3.13_env/Scripts/python.exe",

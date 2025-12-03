@@ -1,65 +1,38 @@
 body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f9;
-    color: #333;
     margin: 0;
     padding: 0;
-    text-align: center;
+    background: #f5f5f5;
 }
 
 header {
-    background-color: #007bff;
-    color: white;
-    padding: 10px 0;
-    margin-bottom: 20px;
-}
-
-main {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 0 15px;
+    background: #222;
+    color: #fff;
+    padding: 10px;
+    text-align: center;
 }
 
 section {
-    background-color: white;
     padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 10px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
-#status-display p {
-    font-size: 1.1em;
-    font-weight: bold;
-}
-
-#status-display span {
-    color: #007bff;
-}
-
-.column-img {
-    max-width: 150px;
-    height: auto;
-    margin-top: 15px;
-    opacity: 0.8;
-}
-
-#control-section button, #config-section button {
-    padding: 10px 20px;
+input, select, button {
     margin: 5px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+    padding: 5px;
 }
 
-#control-section button:hover, #config-section button:hover {
-    background-color: #218838;
+#chart {
+    background: #f0f0f0;
+    border-radius: 5px;
+    margin-top: 10px;
 }
 
-.control-group {
-    padding-top: 15px;
-    border-top: 1px dashed #ccc;
-    margin-top: 15px;
+#column-image img {
+    max-width: 200px;
+    display: block;
+    margin: 10px auto;
 }
