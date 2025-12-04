@@ -12,6 +12,8 @@
 
 #include "webServer.h"
 #include "led.h"
+#include "wifi_control.h"
+#include "parameters.h"
 //******************************************************************************
 // Cinstants
 //******************************************************************************
@@ -59,6 +61,9 @@ esp_err_t chartjs_handler(httpd_req_t *req);
 
 esp_err_t get_led_status_handler(httpd_req_t *req);
 esp_err_t set_led_handler(httpd_req_t *req);
+
+esp_err_t wifi_set_sta_handler(httpd_req_t *req);
+esp_err_t wifi_scan_sta_handler(httpd_req_t *req);
 //******************************************************************************
 // Function
 //******************************************************************************
@@ -93,6 +98,12 @@ httpd_handle_t start_webserver(void)
         httpd_uri_t led_toggle_uri = { .uri = "/api/led/toggle", .method = HTTP_GET, .handler = set_led_handler };        
         httpd_register_uri_handler(server, &led_status_uri);
         httpd_register_uri_handler(server, &led_toggle_uri);
+
+        // Регистрация URI обработчиков для управления WiFi
+        httpd_uri_t wifi_set_sta_uri = { .uri = "/api/wifi/sta", .method = HTTP_GET, .handler = wifi_set_sta_handler };
+        httpd_uri_t uri_wifi_scan_uri = {.uri = "/api/wifi/sta/scan", .method = HTTP_GET, .handler = wifi_scan_sta_handler, .user_ctx = NULL};
+        httpd_register_uri_handler(server, &wifi_set_sta_uri);
+        httpd_register_uri_handler(server, &uri_wifi_scan_uri);
     }
     return server;
 }
@@ -150,6 +161,10 @@ esp_err_t send_file(httpd_req_t *req, const char *path, const char *content_type
     httpd_resp_sendstr_chunk(req, NULL); // завершение передачи
     return ESP_OK;
 }
+
+//------------------------------------------------------------------------------
+// URI Handlers
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 esp_err_t index_handler(httpd_req_t *req)
 {
@@ -170,19 +185,19 @@ esp_err_t chartjs_handler(httpd_req_t *req)
 {
     return send_file(req, "/spiffs/chart.umd.min.js", "application/javascript");
 }
+//------------------------------------------------------------------------------
+// LED Handlers
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------    
 esp_err_t get_led_status_handler(httpd_req_t *req) 
 {
     char buffer[64];
     int is_led_on = led_status();
 
-    ESP_LOGW(TAG, "led_status_handler");
-
     int len = snprintf(buffer, sizeof(buffer), 
                       "{\"led\": %s}", 
                       is_led_on ? "true" : "false");
     
-    // Проверяем успешность формирования строки
     if (len < 0 || len >= sizeof(buffer)) 
     {
         httpd_resp_send_500(req);
@@ -200,11 +215,10 @@ esp_err_t set_led_handler(httpd_req_t *req)
     char buffer[64];
     
     // Переключаем LED
-    int current_state = led_status();
-    int new_state = !current_state;
+    int state = led_status();
+    int new_state = !state;
     led_set(new_state);
     
-    // Формируем JSON ответ
     int len = snprintf(buffer, sizeof(buffer), 
                       "{\"led\": %s}", 
                       new_state ? "true" : "false");
@@ -220,6 +234,95 @@ esp_err_t set_led_handler(httpd_req_t *req)
     
     return ESP_OK;
 }
+//------------------------------------------------------------------------------
+// wifi handlers
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+esp_err_t wifi_set_sta_handler(httpd_req_t *req)
+{
+    char query[128] = {0};
+    char ssid[64] = {0};
+    char pass[64] = {0};
+
+    // Получаем длину query-параметров
+    size_t query_len = httpd_req_get_url_query_len(req);
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, "{\"status\": \"ok\"}");
+
+    if (query_len == 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No query params");
+        return ESP_FAIL;
+    }
+
+    if (query_len + 1 > sizeof(query)) {
+        httpd_resp_send_err(req, HTTPD_414_URI_TOO_LONG, "Query too long");
+        return ESP_FAIL;
+    }
+
+    // Читаем строку вида "ssid=22222222&pass=1111111"
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Bad query");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "Query: %s", query);
+
+    // Извлекаем ssid
+    if (httpd_query_key_value(query, "ssid", ssid, sizeof(ssid)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing ssid");
+        return ESP_FAIL;
+    }
+
+    // Извлекаем pass
+    if (httpd_query_key_value(query, "pass", pass, sizeof(pass)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing pass");
+        return ESP_FAIL;
+    }
+
+    // Логируем
+    ESP_LOGI(TAG, "SSID: %s", ssid);
+    ESP_LOGI(TAG, "PASS: %s", pass);
+
+    wifi_settings_t wifi_settings;
+    strncpy(wifi_settings.ssid, ssid, sizeof(wifi_settings.ssid) - 1);
+    strncpy(wifi_settings.pass, pass, sizeof(wifi_settings.pass) - 1);      
+
+    // Сохраняем настройки WiFi
+    save_wifi_sta_settings(&wifi_settings);
+    wifi_reinit_sta(&wifi_settings);
+
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t wifi_scan_sta_handler(httpd_req_t *req)
+{
+    scanned_ap_info_t aps[MAX_SCAN_APS];
+    int count = wifi_scan_ap(aps, MAX_SCAN_APS);
+
+    // Открываем JSON вручную
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr_chunk(req, "[");
+
+    for (int i = 0; i < count; i++) {
+        char buf[128];
+        snprintf(buf, sizeof(buf),
+            "{\"ssid\":\"%s\",\"rssi\":%d,\"auth\":%d}%s",
+            aps[i].ssid,
+            aps[i].rssi,
+            aps[i].authmode,
+            (i + 1 < count) ? "," : ""
+        );
+        httpd_resp_sendstr_chunk(req, buf);
+    }
+
+    httpd_resp_sendstr_chunk(req, "]");
+    httpd_resp_sendstr_chunk(req, NULL); // завершение
+
+    return ESP_OK;
+}
+
+
 
 // Для JSON
 // httpd_resp_set_type(req, "application/json");

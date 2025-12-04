@@ -147,6 +147,36 @@ section {
 }
 
 /*=============================================================*/
+/* Управление светодиодом */
+#control-led-section {
+    display: flex;
+    align-items: center;      /* выравнивание по вертикали */
+    gap: 12px;                /* расстояние между SVG и кнопкой */
+    padding: 10px 0;
+    justify-content: flex-end;
+}
+
+#control-led-section button {
+    padding: 8px 16px;
+    margin: 0px 20px;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    background-color: #2196F3;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#control-led-section button:hover {
+    background-color: #1b7fcc;
+}
+
+#control-led-section button:active {
+    background-color: #176fb0;
+}
+
+/*=============================================================*/
 /* wifi окна */
 .wifi-STA-modal {
     display: none; /* Скрыто по умолчанию */

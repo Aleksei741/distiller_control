@@ -49,54 +49,79 @@ function setAutoStage() {
 // LED
 // Функция для запроса статуса LED
 async function getLEDStatus() {
-    try {
+    try 
+    {
         const response = await fetch('/api/led/status');
         if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
         const data = await response.json();
         return data.led; // true или false
-    } catch (error) {
+    } 
+    catch (error) 
+    {
         console.error('Ошибка получения статуса LED:', error);
         return null;
     }
 }
 
 // При загрузке страницы
-document.addEventListener('DOMContentLoaded', function() {
-    updateLEDIndicator(null); // Изначально желтый (статус неизвестен)
+document.addEventListener('DOMContentLoaded', function() 
+{
+    updateLEDIndicator(null);
+    updateLEDStatusDisplay();
     
-    // Если открыта секция LED, запросить статус
-    if (document.getElementById('control-led-section').style.display !== 'none') {
-        updateLEDStatusDisplay();
-    }
+    setInterval(updateLEDStatusDisplay, 5000);
 });
 
 // Обновить отображение статуса LED
-async function updateLEDStatusDisplay() {
+async function updateLEDStatusDisplay() 
+{
+    const panel = document.getElementById('control-led-section');
+    if(panel.style.display === 'none') return;
     const status = await getLEDStatus();
     updateLEDIndicator(status);
     console.log('Статус LED:', status);
 }
 
-// Упрощенная функция переключения LED
+// Функция для переключения LED
 async function toggleLED() {
-    try {
-        // Мгновенно меняем цвет на желтый (обработка)
-        updateLEDIndicator(null);
-        
+    try 
+    {
+        updateLEDIndicator(null);        
         const response = await fetch('/api/led/toggle');
+        if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
         const data = await response.json();
         
         // Обновляем индикатор
         updateLEDIndicator(data.led);
-        
-        // Короткий звук
-        beep(data.led ? 800 : 400, 30);
-        
         return data;
-    } catch (error) {
+    } 
+    catch (error) 
+    {
         console.error('Ошибка при переключении LED:', error);
-        updateLEDIndicator(false);
+        // При ошибке пытаемся получить актуальный статус
+        updateLEDStatusDisplay();
         alert('Не удалось переключить LED');
+    }
+}
+
+// Функция для обновления визуального индикатора LED
+function updateLEDIndicator(status) 
+{
+    const indicator = document.getElementById('led-status');
+
+    if (!indicator) return;
+
+    if (status === true) 
+    {
+        indicator.setAttribute("fill", "#4CAF50"); // Зеленый
+    } 
+    else if (status === false) 
+    {
+        indicator.setAttribute("fill", "#f44336"); // Красный
+    } 
+    else 
+    {
+        indicator.setAttribute("fill", "#FFA500"); // Оранжевый
     }
 }
 
@@ -140,7 +165,7 @@ const chart = new Chart(ctx, {
 });
 
 // Периодическое обновление данных
-setInterval(() => {
+/*setInterval(() => {
     fetch('/api/status')
         .then(res => res.json())
         .then(data => {
@@ -162,7 +187,7 @@ setInterval(() => {
 
             chart.update();
         });
-}, 1000);
+}, 1000);*/
 
 //==========================================================================
 // Функция для переключения между секциями
@@ -187,28 +212,20 @@ function switchSections(current = "control") {
 }
 
 //==========================================================================
-// Всплывающее меню в header - ОТЛАДОЧНЫЙ ВАРИАНТ
-document.addEventListener("click", function (e) {
-    console.log("Клик по:", e.target);
-    console.log("Класс элемента:", e.target.className);
-    console.log("Тег элемента:", e.target.tagName);
-    
+// Всплывающее меню в header
+document.addEventListener("click", function (e) {    
     // Ищем ближайшую кнопку
     const clickedButton = e.target.closest('button');
-    console.log("Найдена кнопка:", clickedButton);
     
     if (clickedButton) {
         // Ищем ближайший .btn-wrap, содержащий эту кнопку
         const wrap = clickedButton.closest('.btn-wrap');
-        console.log("Найден wrap:", wrap);
         
         if (wrap) {
             // Проверяем, есть ли у этого wrap подменю
             const submenu = wrap.querySelector('.submenu');
-            console.log("Найдено подменю:", submenu);
             
             if (submenu) {
-                console.log("Есть подменю, открываем/закрываем");
                 // Закрываем другие открытые меню
                 document.querySelectorAll(".btn-wrap.show").forEach(el => {
                     if (el !== wrap) el.classList.remove("show");
@@ -222,18 +239,15 @@ document.addEventListener("click", function (e) {
         }
     }
 
-    // 2. Клик внутри подменю — не закрываем
+    // Клик внутри подменю — не закрываем
     if (e.target.closest(".submenu")) {
-        console.log("Клик внутри подменю");
         return;
     }
 
-    // 3. Клик вне — закрываем все меню
-    console.log("Клик вне, закрываем все меню");
+    // Клик вне — закрываем все меню
     document.querySelectorAll(".btn-wrap.show")
         .forEach(el => el.classList.remove("show"));
 });
-
 //==========================================================================
 // Звуковой сигнал
 function beep(frequency = 440, duration = 200) {
@@ -285,7 +299,7 @@ function hideSTAmodal() {
 function connectSTA() {
     const ssid = document.getElementById('sta-ssid').value;
     const pass = document.getElementById('sta-pass').value;
-    fetch(`/api/wifi/connect?ssid=${ssid}&pass=${pass}`)
+    fetch(`/api/wifi/sta?ssid=${ssid}&pass=${pass}`)
         .then(res => res.json())
         .then(alert);
     hideSTAmodal();
@@ -297,7 +311,7 @@ function scanNetworks() {
     listEl.innerHTML = '<li>Сканирование...</li>';
 
     // Пример fetch: ESP32 должен отдавать JSON с массивом сетей
-    fetch('/scan') // URL на ESP32, который возвращает [{ssid: "MyWiFi", rssi: -50}, ...]
+    fetch('/api/wifi/sta/scan') // URL на ESP32, который возвращает [{ssid: "MyWiFi", rssi: -50}, ...]
         .then(response => response.json())
         .then(data => {
             listEl.innerHTML = '';
