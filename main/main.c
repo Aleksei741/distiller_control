@@ -3,6 +3,7 @@
 #include <parameters.h>
 #include <wifi_control.h>
 #include <webServer.h>
+#include <led.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -16,7 +17,8 @@
 void app_main(void) 
 {
     parameters_init(); 
-    wifi_init();      
+    wifi_init();
+    led_init();
     
     wifi_settings_t sta_cfg;
     wifi_settings_t ap_cfg;

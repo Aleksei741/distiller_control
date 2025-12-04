@@ -1,3 +1,6 @@
+/*=============================================================*/
+/* общие */
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -6,21 +9,50 @@ body {
 }
 
 header {
-    background: #222;
+    background: #a7a2a2;
     color: #fff;
     padding: 10px;
     text-align: center;
 }
 
+input, select, button {
+    margin: 0px;
+    padding: 0px;
+}
+
+/*=============================================================*/
+/* Область для отображения */
+.container {
+    max-width: 600px; /* Ограничение максимальной ширины */
+    min-width: 350px;
+    width: 100%; /* Занимает всю доступную ширину */
+    margin: 0 auto; /* Центрирование по горизонтали */
+    padding: 0px 20px; /* Отступы по бокам */
+    box-sizing: border-box; /* Чтобы padding не увеличивал ширину */
+}
+
+.container section {
+    max-width: 100%; /* Не превышать ширину контейнера */
+    margin: 20px auto; /* Центрирование и отступы сверху/снизу */
+    box-sizing: border-box; /* Важно для корректного расчета ширины */
+}
+
 section {
     padding: 20px;
     margin: 20px 10px;
-    background: linear-gradient(135deg, #16204b, #027ffd);
+    background: linear-gradient(135deg, #2c46b9, #ced4da);
     background-size: 300% 300%;
     animation: gradientFlow 16s cubic-bezier(0.77, 0, 0.175, 1) ease infinite;
     border-radius: 10px;
     box-shadow: 0 0 15px rgba(0,0,0,0.2);
     color: #fff; /* Чтобы текст хорошо читался */
+}
+
+.container .statistic-section {
+    display: none;
+    max-width: 100%; /* Не превышать ширину контейнера */
+    margin: 20px auto; /* Центрирование и отступы сверху/снизу */
+    box-sizing: border-box; /* Важно для корректного расчета ширины */
 }
 
 @keyframes gradientFlow {
@@ -35,60 +67,87 @@ section {
     100% { background-position:   0% 100%; }
 }
 
-
-.container {
-    max-width: 600px; /* Ограничение максимальной ширины */
-    width: 100%; /* Занимает всю доступную ширину */
-    margin: 0 auto; /* Центрирование по горизонтали */
-    padding: 0px 20px; /* Отступы по бокам */
-    box-sizing: border-box; /* Чтобы padding не увеличивал ширину */
-}
-
-.container section {
-    max-width: 100%; /* Не превышать ширину контейнера */
-    margin: 20px auto; /* Центрирование и отступы сверху/снизу */
-    box-sizing: border-box; /* Важно для корректного расчета ширины */
-}
-
-input, select, button {
-    margin: 5px;
-    padding: 5px;
-}
-
+/*=============================================================*/
+/* график */
 #chart {
     background: #f0f0f0;
     border-radius: 5px;
     margin-top: 10px;
 }
 
-#column-image img {
-    max-width: 200px;
-    display: block;
-    margin: 10px auto;
+#statistic-section {
+    display: none;
+}
+/*=============================================================*/
+/* Контейнер для кнопок в header*/
+/* Обёртка для каждой кнопки */
+.btn-wrap {
+    position: relative;   /* нужно для абсолютного позиционирования меню */
 }
 
-#control-panel {
-    text-align: center;
-    margin: 20px auto;
+/* Контейнер для кнопок */
+.button-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0px;
+    margin: 0 auto;
 }
-#control-panel button {
-    margin: 5px;
-    padding: 10px 20px;
+
+/* Кнопки одинаковые */
+.button-grid button {
+    flex: 0 0 200px;
+    min-width: 200px;
+    padding: 2px 2px;
     font-size: 16px;
-    border-radius: 6px;
+    border-radius: 0px;
     border: none;
-    background-color: #4CAF50;
-    color: white;
+    background-color: #f0f0f0;
+    color: black;
     cursor: pointer;
-}
-#control-panel button:hover {
-    background-color: #45a049;
+    box-sizing: border-box;
+    border: 2px solid #888;
 }
 
+/* Выпадающее меню */
+.submenu {
+    display: none;
+    position: absolute;
+    top: 100%;               /* прямо под кнопкой */
+    left: 0;
+    width: 200px;            /* совпадает с шириной кнопки */
+    background: #f0f0f0;
+    border-radius: 1px;
+    border: 1px solid #ccc;
+    overflow: hidden;
+    z-index: 50;
+    color: black;
+    
+}
 
+/* Элементы меню */
+.submenu div {
+    padding: 2px;
+    margin: 1px;
+    cursor: pointer;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #93959e, #ced4da);
+}
+
+.submenu div:hover {
+    background: #dcdcdc;
+}
+
+/* Показ меню при наведении */
+/*.btn-wrap:hover .submenu {
+    display: block;
+}*/
+.btn-wrap.show .submenu {
+    display: block;
+}
 
 /*=============================================================*/
-/* wifi STA */
+/* wifi окна */
 .wifi-STA-modal {
     display: none; /* Скрыто по умолчанию */
     position: fixed;
@@ -101,7 +160,6 @@ input, select, button {
     background-color: rgba(0,0,0,0.5);
 }
 
-/* wifi ap */
 .wifi-AP-modal {
     display: none; /* Скрыто по умолчанию */
     position: fixed;
@@ -171,6 +229,7 @@ input, select, button {
     cursor: pointer;
     font-size: 14px;
     width: 70%;
+    margin: 10px;
 }
 
 .wifi-button-scanNetworks button:hover {

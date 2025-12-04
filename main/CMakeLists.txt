@@ -3,12 +3,14 @@ set(SOURCES
     parameters/parameters.c
     wifiServer/wifi_control.c
     wifiServer/webServer.c
+    periferial/led.c
 )
 
 set(INCLUDES
     "."
     wifiServer
     parameters
+    periferial
 )
 
 idf_component_register(SRCS ${SOURCES}

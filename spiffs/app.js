@@ -1,3 +1,5 @@
+//==========================================================================
+//Анимация
 let y = 360;
 function animateVapor() {
     y -= 1;
@@ -7,6 +9,7 @@ function animateVapor() {
 }
 animateVapor();
 
+//==========================================================================
 // Режим управления
 document.querySelectorAll('input[name="mode"]').forEach(el => {
     el.addEventListener('change', () => {
@@ -42,13 +45,63 @@ function setAutoStage() {
         .then(alert);
 }
 
+//==========================================================================
 // LED
-function toggleLED() {
-    fetch('/api/led/toggle')
-        .then(res => res.json())
-        .then(alert);
+// Функция для запроса статуса LED
+async function getLEDStatus() {
+    try {
+        const response = await fetch('/api/led/status');
+        if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
+        const data = await response.json();
+        return data.led; // true или false
+    } catch (error) {
+        console.error('Ошибка получения статуса LED:', error);
+        return null;
+    }
 }
 
+// При загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    updateLEDIndicator(null); // Изначально желтый (статус неизвестен)
+    
+    // Если открыта секция LED, запросить статус
+    if (document.getElementById('control-led-section').style.display !== 'none') {
+        updateLEDStatusDisplay();
+    }
+});
+
+// Обновить отображение статуса LED
+async function updateLEDStatusDisplay() {
+    const status = await getLEDStatus();
+    updateLEDIndicator(status);
+    console.log('Статус LED:', status);
+}
+
+// Упрощенная функция переключения LED
+async function toggleLED() {
+    try {
+        // Мгновенно меняем цвет на желтый (обработка)
+        updateLEDIndicator(null);
+        
+        const response = await fetch('/api/led/toggle');
+        const data = await response.json();
+        
+        // Обновляем индикатор
+        updateLEDIndicator(data.led);
+        
+        // Короткий звук
+        beep(data.led ? 800 : 400, 30);
+        
+        return data;
+    } catch (error) {
+        console.error('Ошибка при переключении LED:', error);
+        updateLEDIndicator(false);
+        alert('Не удалось переключить LED');
+    }
+}
+
+//==========================================================================
+// Статистика
 // Инициализация графика
 const ctx = document.getElementById('chart').getContext('2d');
 const chart = new Chart(ctx, {
@@ -111,6 +164,77 @@ setInterval(() => {
         });
 }, 1000);
 
+//==========================================================================
+// Функция для переключения между секциями
+function switchSections(current = "control") {
+    const statusSection = document.getElementById('status-section');
+    const controlSection = document.getElementById('control-section');
+    const statisticSection = document.getElementById('statistic-section');
+    const controlLedSection = document.getElementById('control-led-section');
+
+    statusSection.style.display = 'none';
+    controlSection.style.display = 'none';
+    statisticSection.style.display = 'none';
+    controlLedSection.style.display = 'none';
+    
+    if (current == "control") {
+        statusSection.style.display = 'block';
+        controlSection.style.display = 'block';
+        controlLedSection.style.display = 'block';
+    } else if (current == "statistic") {
+        statisticSection.style.display = 'block';
+    }
+}
+
+//==========================================================================
+// Всплывающее меню в header - ОТЛАДОЧНЫЙ ВАРИАНТ
+document.addEventListener("click", function (e) {
+    console.log("Клик по:", e.target);
+    console.log("Класс элемента:", e.target.className);
+    console.log("Тег элемента:", e.target.tagName);
+    
+    // Ищем ближайшую кнопку
+    const clickedButton = e.target.closest('button');
+    console.log("Найдена кнопка:", clickedButton);
+    
+    if (clickedButton) {
+        // Ищем ближайший .btn-wrap, содержащий эту кнопку
+        const wrap = clickedButton.closest('.btn-wrap');
+        console.log("Найден wrap:", wrap);
+        
+        if (wrap) {
+            // Проверяем, есть ли у этого wrap подменю
+            const submenu = wrap.querySelector('.submenu');
+            console.log("Найдено подменю:", submenu);
+            
+            if (submenu) {
+                console.log("Есть подменю, открываем/закрываем");
+                // Закрываем другие открытые меню
+                document.querySelectorAll(".btn-wrap.show").forEach(el => {
+                    if (el !== wrap) el.classList.remove("show");
+                });
+                
+                // Переключаем текущее меню
+                wrap.classList.toggle("show");
+                e.stopPropagation();
+                return;
+            }
+        }
+    }
+
+    // 2. Клик внутри подменю — не закрываем
+    if (e.target.closest(".submenu")) {
+        console.log("Клик внутри подменю");
+        return;
+    }
+
+    // 3. Клик вне — закрываем все меню
+    console.log("Клик вне, закрываем все меню");
+    document.querySelectorAll(".btn-wrap.show")
+        .forEach(el => el.classList.remove("show"));
+});
+
+//==========================================================================
 // Звуковой сигнал
 function beep(frequency = 440, duration = 200) {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();

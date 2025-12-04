@@ -26,45 +26,78 @@
     <div id="wifi-STA-modal" class="wifi-STA-modal">
         <div class="wifi-modal-content">
             <h3 class="wifi-modal-title">Подключение к роутеру</h3>
-            <div>
-                <div class="wifi-form-group"></div>
-                    <input type="text" id="sta-ssid" placeholder="SSID">
-                    <input type="password" id="sta-pass" placeholder="Пароль">
-                </div>
-                <div class="wifi-button-group"> 
-                    <button onclick="connectSTA()">Подключить</button>
-                    <button onclick="hideSTAmodal()">Отмена</button>
-                </div>
-                <div class="wifi-button-scanNetworks"> 
-                    <button onclick="scanNetworks()">Сканировать сети</button>
-                </div>
-                <ul id="wifi-list"></ul>
+            <div class="wifi-form-group">
+                <input type="text" id="sta-ssid" placeholder="SSID">
+                <input type="password" id="sta-pass" placeholder="Пароль">
             </div>
+            <div class="wifi-button-group"> 
+                <button onclick="connectSTA()">Подключить</button>
+                <button onclick="hideSTAmodal()">Отмена</button>
+            </div>
+            <div class="wifi-button-scanNetworks"> 
+                <button onclick="scanNetworks()">Сканировать сети</button>
+            </div>
+            <ul id="wifi-list"></ul>            
         </div>
     </div>
 
     <header>
-        <h1>Управление Джин Колонной</h1>
+        <div class="button-grid">
+            <div class="btn-wrap">
+                <button onclick="switchSections('control')">Управление</button>
+            </div>
+
+            <div class="btn-wrap has-submenu">
+                <button>Статистика</button>
+                <div class="submenu">
+                    <div onclick="switchSections('statistic')">Общий график</div>
+                </div>
+            </div>
+
+            <div class="btn-wrap has-submenu">
+                <button>WFI</button>
+                <div class="submenu">
+                    <div onclick="showSTAmodal()">Подключить</div>
+                    <div onclick="showAPmodal()">Точка доступа</div>
+                </div>
+            </div>
+
+            <div class="btn-wrap has-submenu">
+                <button >Настройка</button>
+                <div class="submenu">
+                    <div>Быстрый запуск</div>
+                    <div>Расширенный режим</div>
+                    <div onclick="beep(2000, 10)">beep</div>
+                </div>
+            </div>
+        </div>
     </header>
-    <div class="container">
-        
 
-        <section id="control-panel">
-            <h2>Панель управления</h2>
-            <button onclick="showAPmodal()">AP</button>
-            <button onclick="showSTAmodal()">STA</button>
-            <button onclick="beep(2000, 10)">Запуск процесса</button>
-            <button onclick="stopProcess()">Стоп</button>
-        </section>        
-
+    <div class="container">  
         <section id="status-section">
-
-            <svg id="column-svg" viewBox="0 0 300 520" style="width:260px; display:block; margin:0 auto;">
-                
+            <svg id="column-svg" viewBox="0 0 300 520" style="width:260px; display:block; margin:0 auto;">         
+                <!-- Градиент для температуры колонны -->
+                <defs>
+                    <linearGradient id="tempColumnGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                        <stop offset="0%" style="stop-color:blue;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:green;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:red;stop-opacity:1" />
+                    </linearGradient>
+                    <linearGradient id="tempCubeGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                        <stop offset="0%" style="stop-color:blue;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:green;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:red;stop-opacity:1" />
+                    </linearGradient>
+                    <linearGradient id="powerGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                        <stop offset="0%" style="stop-color:green;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:yellow;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:red;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                                
                 <!-- Куб -->
                 <rect x="80" y="360" width="140" height="140" rx="12" fill="#d0d0d0" stroke="#444" stroke-width="3"/>
-                <text x="150" y="455" text-anchor="middle" font-size="16">Куб</text>
-                <circle id="vapor" cx="150" cy="360" r="5" fill="orange"/>
+                <text x="150" y="455" text-anchor="middle" font-size="16">Куб</text>                
 
                 <!-- Метки около куба -->
                 <text id="temp-cube-label" x="150" y="390" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
@@ -94,17 +127,13 @@
                 <line x1="210" y1="270" x2="210" y2="290" stroke="#444" stroke-width="3"/>
                 <circle cx="210" cy="290" r="5" fill="#444"/>
 
+                <circle id="vapor" cx="150" cy="360" r="5" fill="orange"/>
+
                 <!-- Метка температуры колонны между дефлегматором и холодильником -->
                 <text id="temp-column-label" x="180" y="20" text-anchor="middle" font-size="20" fill="#fff" stroke="#000" stroke-width="3" paint-order="stroke">
                     🌡️ <tspan id="temp-column">--</tspan>°C
                 </text>
-            </svg>
-
-            <div id="temperatures" style="text-align:center;">
-                <!-- Здесь могут остаться текстовые дубли, если нужны -->
-            </div>
-
-            <canvas id="chart" width="600" height="300"></canvas>
+            </svg>            
         </section>
 
         <section id="control-section">
@@ -135,33 +164,18 @@
 
             <button onclick="toggleLED()">LED Вкл/Выкл</button>
         </section>
+        
+        <section id="control-led-section">
+            <svg id="led-status-svg" viewBox="0 0 20 20" style="width: 30px; height: 30px; vertical-align: middle; margin-right: 10px;">
+                <circle id="led-status" cx="10" cy="10" r="8" fill="#c0c0c0" stroke="#666" stroke-width="1"/>
+            </svg>
+            <button onclick="toggleLED()" style="padding: 8px 16px; vertical-align: middle;">LED Вкл/Выкл</button>
+        </section>
+
+        <section id="statistic-section">
+            <canvas id="chart" width="600" height="300"></canvas>
+        </section>
     </div>
-
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M5 12.55a11 11 0 0 1 14 0"/>
-        <path d="M1 8a15 15 0 0 1 22 0"/>
-        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-        <path d="M12 20h.01"/>
-    </svg>
-
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M12 2a10 10 0 0 1 10 10"/>
-        <path d="M12 2a10 10 0 0 0-10 10"/>
-    </svg>
-
-    <!-- Значок настроек (шестерёнка) -->
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l0 0a2 2 0 0 1-2.83 2.83l0 0a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v0a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l0 0a2 2 0 0 1-2.83-2.83l0 0a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h0a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l0 0a2 2 0 0 1 2.83-2.83l0 0a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v0a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l0 0a2 2 0 0 1 2.83 2.83l0 0a1.65 1.65 0 0 0-.33 1.82h0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h0a1.65 1.65 0 0 0-1.51 1z"></path>
-    </svg>
-
-    <!-- Значок основного окна (панель управления) -->
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-        <line x1="3" y1="9" x2="21" y2="9"></line>
-        <line x1="9" y1="21" x2="9" y2="9"></line>
-    </svg>
 
     <script src="chart.umd.min.js"></script>
     <script src="app.js"></script>
