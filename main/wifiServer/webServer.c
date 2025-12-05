@@ -59,11 +59,15 @@ esp_err_t js_handler(httpd_req_t *req);
 esp_err_t led_handler(httpd_req_t *req);
 esp_err_t chartjs_handler(httpd_req_t *req);
 
+esp_err_t led_api_handler(httpd_req_t *req);
 esp_err_t get_led_status_handler(httpd_req_t *req);
 esp_err_t set_led_handler(httpd_req_t *req);
 
+esp_err_t wifi_api_handler(httpd_req_t *req);
 esp_err_t wifi_set_sta_handler(httpd_req_t *req);
-esp_err_t wifi_scan_sta_handler(httpd_req_t *req);
+esp_err_t wifi_sta_start_scan_handler(httpd_req_t *req);
+esp_err_t wifi_sta_scan_isdone_handler(httpd_req_t *req);
+esp_err_t wifi_sta_scan_result_handler(httpd_req_t *req);
 //******************************************************************************
 // Function
 //******************************************************************************
@@ -71,8 +75,6 @@ void init_webserver(void)
 {
     ESP_LOGI(TAG, "Webserver initialized");
     init_spiffs();
-
-    //gpio_set_direction(LED_GPIO, GPIO_MODE_OUTPUT);
 }
 //------------------------------------------------------------------------------
 httpd_handle_t start_webserver(void) 
@@ -94,16 +96,12 @@ httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &chartjs_uri);
 
         // Регистрация URI обработчиков для управления светодиодом
-        httpd_uri_t led_status_uri = { .uri = "/api/led/status", .method = HTTP_GET, .handler = get_led_status_handler };
-        httpd_uri_t led_toggle_uri = { .uri = "/api/led/toggle", .method = HTTP_GET, .handler = set_led_handler };        
-        httpd_register_uri_handler(server, &led_status_uri);
-        httpd_register_uri_handler(server, &led_toggle_uri);
+        httpd_uri_t led_uri = { .uri = "/api/led*", .method = HTTP_GET, .handler = led_api_handler }; 
+        httpd_register_uri_handler(server, &led_uri);
 
         // Регистрация URI обработчиков для управления WiFi
-        httpd_uri_t wifi_set_sta_uri = { .uri = "/api/wifi/sta", .method = HTTP_GET, .handler = wifi_set_sta_handler };
-        httpd_uri_t uri_wifi_scan_uri = {.uri = "/api/wifi/sta/scan", .method = HTTP_GET, .handler = wifi_scan_sta_handler, .user_ctx = NULL};
-        httpd_register_uri_handler(server, &wifi_set_sta_uri);
-        httpd_register_uri_handler(server, &uri_wifi_scan_uri);
+        httpd_uri_t wifi_api_uri = {.uri = "/api/wifi/sta*", .method = HTTP_GET, .handler = wifi_api_handler, .user_ctx = NULL};
+        httpd_register_uri_handler(server, &wifi_api_uri);
     }
     return server;
 }
@@ -188,6 +186,19 @@ esp_err_t chartjs_handler(httpd_req_t *req)
 //------------------------------------------------------------------------------
 // LED Handlers
 //------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+esp_err_t led_api_handler(httpd_req_t *req)
+{
+    const char* uri = req->uri;
+
+    if (strcmp(uri, "/api/led/status") == 0)
+        return get_led_status_handler(req);
+    else if (strcmp(uri, "/api/led/toggle") == 0)
+        return set_led_handler(req);
+
+    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Unknown LED API");
+    return ESP_FAIL;
+}
 //------------------------------------------------------------------------------    
 esp_err_t get_led_status_handler(httpd_req_t *req) 
 {
@@ -238,6 +249,23 @@ esp_err_t set_led_handler(httpd_req_t *req)
 // wifi handlers
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
+esp_err_t wifi_api_handler(httpd_req_t *req)
+{
+    const char* uri = req->uri;
+
+    if (strcmp(uri, "/api/wifi/sta") == 0) 
+        return wifi_set_sta_handler(req);
+    else if (strcmp(uri, "/api/wifi/sta/scan/start") == 0)
+        return wifi_sta_start_scan_handler(req);
+    else if (strcmp(uri, "/api/wifi/sta/scan/isdone") == 0)
+        return wifi_sta_scan_isdone_handler(req);
+    else if (strcmp(uri, "/api/wifi/sta/scan/result") == 0)
+        return wifi_sta_scan_result_handler(req);
+
+    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Unknown API");
+    return ESP_FAIL;
+}
+//------------------------------------------------------------------------------
 esp_err_t wifi_set_sta_handler(httpd_req_t *req)
 {
     char query[128] = {0};
@@ -250,18 +278,21 @@ esp_err_t wifi_set_sta_handler(httpd_req_t *req)
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, "{\"status\": \"ok\"}");
 
-    if (query_len == 0) {
+    if (query_len == 0) 
+    {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No query params");
         return ESP_FAIL;
     }
 
-    if (query_len + 1 > sizeof(query)) {
+    if (query_len + 1 > sizeof(query)) 
+    {
         httpd_resp_send_err(req, HTTPD_414_URI_TOO_LONG, "Query too long");
         return ESP_FAIL;
     }
 
     // Читаем строку вида "ssid=22222222&pass=1111111"
-    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) {
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) 
+    {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Bad query");
         return ESP_FAIL;
     }
@@ -269,13 +300,15 @@ esp_err_t wifi_set_sta_handler(httpd_req_t *req)
     ESP_LOGI(TAG, "Query: %s", query);
 
     // Извлекаем ssid
-    if (httpd_query_key_value(query, "ssid", ssid, sizeof(ssid)) != ESP_OK) {
+    if (httpd_query_key_value(query, "ssid", ssid, sizeof(ssid)) != ESP_OK) 
+    {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing ssid");
         return ESP_FAIL;
     }
 
     // Извлекаем pass
-    if (httpd_query_key_value(query, "pass", pass, sizeof(pass)) != ESP_OK) {
+    if (httpd_query_key_value(query, "pass", pass, sizeof(pass)) != ESP_OK) 
+    {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing pass");
         return ESP_FAIL;
     }
@@ -295,33 +328,61 @@ esp_err_t wifi_set_sta_handler(httpd_req_t *req)
     return ESP_OK;
 }
 //------------------------------------------------------------------------------
-esp_err_t wifi_scan_sta_handler(httpd_req_t *req)
+esp_err_t wifi_sta_start_scan_handler(httpd_req_t *req)
+{
+    wifi_sta_request_scan();
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, "{\"status\":\"scan_started\"}");
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t wifi_sta_scan_isdone_handler(httpd_req_t *req)
+{
+    char buffer[64];
+    int is_done = wifi_sta_is_scan_done();
+
+    int len = snprintf(buffer, sizeof(buffer), 
+                      "{\"wifi_sta_isdone\": %s}", 
+                      is_done ? "true" : "false");
+    
+    if (len < 0 || len >= sizeof(buffer))
+    {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+    
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, buffer, len);
+
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t wifi_sta_scan_result_handler(httpd_req_t *req)
 {
     scanned_ap_info_t aps[MAX_SCAN_APS];
-    int count = wifi_scan_ap(aps, MAX_SCAN_APS);
+    int count = get_wifi_sta_scan_results(aps);
 
-    // Открываем JSON вручную
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr_chunk(req, "[");
 
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++) 
+    {
         char buf[128];
         snprintf(buf, sizeof(buf),
             "{\"ssid\":\"%s\",\"rssi\":%d,\"auth\":%d}%s",
             aps[i].ssid,
             aps[i].rssi,
             aps[i].authmode,
-            (i + 1 < count) ? "," : ""
+            (i+1<count)?",":""
         );
         httpd_resp_sendstr_chunk(req, buf);
     }
 
     httpd_resp_sendstr_chunk(req, "]");
-    httpd_resp_sendstr_chunk(req, NULL); // завершение
-
+    httpd_resp_sendstr_chunk(req, NULL);
     return ESP_OK;
 }
-
 
 
 // Для JSON

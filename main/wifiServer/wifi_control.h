@@ -26,8 +26,10 @@ typedef struct {
 void wifi_init(void);
 void wifi_start_ap_sta(const wifi_settings_t *cfg_sta, const wifi_settings_t *cfg_ap);
 void wifi_reinit_sta(const wifi_settings_t *cfg_sta);
+void wifi_sta_request_scan(void);
+int wifi_sta_is_scan_done(void);
+int get_wifi_sta_scan_results(scanned_ap_info_t *aps);
 void wifi_reinit_ap(const wifi_settings_t *cfg_ap);
-int wifi_scan_ap(scanned_ap_info_t *ap_list, int max_count);
 //******************************************************************************
 // Секция определения макросов
 //******************************************************************************

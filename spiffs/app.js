@@ -282,7 +282,6 @@ function setupAP() {
     hideAPmodal();
 }
 
-
 //==========================================================================
 // Функции для работы с модалками Wi-Fi STA
 // Показываем модалку
@@ -306,33 +305,50 @@ function connectSTA() {
 }
 
 // Сканирование сетей через ESP32
-function scanNetworks() {
-    const listEl = document.getElementById('wifi-list');
-    listEl.innerHTML = '<li>Сканирование...</li>';
+async function scanWifi() {
+    // 1. Стартуем сканирование
+    console.log("Starting WiFi scan...");
+    await fetch("/api/wifi/sta/scan/start");
 
-    // Пример fetch: ESP32 должен отдавать JSON с массивом сетей
-    fetch('/api/wifi/sta/scan') // URL на ESP32, который возвращает [{ssid: "MyWiFi", rssi: -50}, ...]
-        .then(response => response.json())
-        .then(data => {
-            listEl.innerHTML = '';
-            data.forEach(net => {
-                const li = document.createElement('li');
-                li.textContent = `${net.ssid} (${net.rssi} dBm)`;
-                li.addEventListener('click', () => {
-                    document.getElementById('sta-ssid').value = net.ssid;
-                });
-                listEl.appendChild(li);
-            });
-        })
-        .catch(err => {
-            listEl.innerHTML = '<li>Ошибка сканирования</li>';
-            console.error(err);
-        });
+    // 2. Ждём завершения
+    console.log("Waiting for scan to complete...");
+
+    for (;;) 
+    {
+        await new Promise(r => setTimeout(r, 300)); // 300ms пауза между запросами
+
+        let resp = await fetch("/api/wifi/sta/scan/isdone");
+        let data = await resp.json();
+
+        if (data.wifi_sta_isdone === true) 
+        {
+            console.log("Scan completed");
+            break;
+        }
+    }
+
+    // 3. Получаем список сетей
+    console.log("Fetching scan results...");
+    let res = await fetch("/api/wifi/sta/scan/result");
+    let aps = await res.json();
+
+    console.log("Scan result:", aps);
+
+    return aps;
 }
 
-// [
-//   {"ssid": "HomeWiFi", "rssi": -45},
-//   {"ssid": "Guest", "rssi": -70},
-//   {"ssid": "CafeNet", "rssi": -80}
-// ]
+//Запуск сканирования
+async function scanNetworks() {
+    let aps = await scanWifi();
+
+    const list = document.getElementById("wifi-list");
+    list.innerHTML = "";
+
+    aps.forEach(ap => {
+        const item = document.createElement("div");
+        item.textContent = `${ap.ssid}  RSSI:${ap.rssi}  Auth:${ap.auth}`;
+        list.appendChild(item);
+    });
+}
+
 //==========================================================================

@@ -40,7 +40,7 @@ input, select, button {
 section {
     padding: 20px;
     margin: 20px 10px;
-    background: linear-gradient(135deg, #2c46b9, #ced4da);
+    background: linear-gradient(135deg, #98a8f0, #ced4da);
     background-size: 300% 300%;
     animation: gradientFlow 16s cubic-bezier(0.77, 0, 0.175, 1) ease infinite;
     border-radius: 10px;
