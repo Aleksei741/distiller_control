@@ -172,10 +172,20 @@ esp_err_t load_wifi_ap_settings(wifi_settings_t *out)
         .def_pass = DEFAULT_PARAM_AP_WIFI_PASS
     };
 
-    return load_wifi_settings(&WIFI_AP_CFG, out);
+    esp_err_t err = load_wifi_settings(&WIFI_AP_CFG, out);
+    if (err != ESP_OK) return err;
+
+    if (strlen(out->pass) < MIN_WIFI_PASS_LEN) 
+    {
+        ESP_LOGW(TAG, "load_wifi_ap_settings: Password too short, use default: %s", 
+            DEFAULT_PARAM_AP_WIFI_PASS);
+        strncpy(out->pass, DEFAULT_PARAM_AP_WIFI_PASS, sizeof(out->pass));
+    }
+
+    return err;
 }
 //------------------------------------------------------------------------------
-esp_err_t save_wifi_ap_settings(const wifi_settings_t *in)
+esp_err_t save_wifi_ap_settings(wifi_settings_t *in)
 {
     const wifi_config_desc_t WIFI_STA_CFG = 
     {
@@ -185,6 +195,12 @@ esp_err_t save_wifi_ap_settings(const wifi_settings_t *in)
         .def_ssid = "",
         .def_pass = ""
     };
+
+    if(in && strlen(in->pass) < MIN_WIFI_PASS_LEN) 
+    {
+        ESP_LOGW(TAG, "save_wifi_ap_settings: Password too short, not saving.");
+        strncpy(in->pass, DEFAULT_PARAM_AP_WIFI_PASS, sizeof(in->pass));
+    }
 
     return save_wifi_settings(&WIFI_STA_CFG, in);
 }

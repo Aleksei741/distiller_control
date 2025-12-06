@@ -196,11 +196,13 @@ function switchSections(current = "control") {
     const controlSection = document.getElementById('control-section');
     const statisticSection = document.getElementById('statistic-section');
     const controlLedSection = document.getElementById('control-led-section');
+    const tempSensorSection = document.getElementById('temp-sensor-settings');
 
     statusSection.style.display = 'none';
     controlSection.style.display = 'none';
     statisticSection.style.display = 'none';
     controlLedSection.style.display = 'none';
+    tempSensorSection.style.display = 'none';
     
     if (current == "control") {
         statusSection.style.display = 'block';
@@ -208,6 +210,8 @@ function switchSections(current = "control") {
         controlLedSection.style.display = 'block';
     } else if (current == "statistic") {
         statisticSection.style.display = 'block';
+    } else if (current == "tempsensor") {
+        tempSensorSection.style.display = 'block';
     }
 }
 
@@ -276,9 +280,16 @@ function hideAPmodal() {
 function setupAP() {
     const ssid = document.getElementById('ap-ssid').value;
     const pass = document.getElementById('ap-pass').value;
-    fetch(`/api/wifi/ap?ssid=${ssid}&pass=${pass}`)
+
+    if (pass.length < 8) {
+        alert("Ошибка: пароль должен быть не менее 8 символов");
+        return; // Прерываем выполнение функции
+    }
+
+    fetch(`/api/wifi/ap?ssid=${encodeURIComponent(ssid)}&pass=${encodeURIComponent(pass)}`)
         .then(res => res.json())
         .then(alert);
+
     hideAPmodal();
 }
 
@@ -339,16 +350,86 @@ async function scanWifi() {
 
 //Запуск сканирования
 async function scanNetworks() {
-    let aps = await scanWifi();
+    let aps = await scanWifi(); // получаем список сетей
 
     const list = document.getElementById("wifi-list");
-    list.innerHTML = "";
+    list.innerHTML = ""; // очищаем список
 
     aps.forEach(ap => {
-        const item = document.createElement("div");
-        item.textContent = `${ap.ssid}  RSSI:${ap.rssi}  Auth:${ap.auth}`;
+        // создаём элемент списка
+        const item = document.createElement("li");
+
+        // контейнер для текста SSID
+        const ssidSpan = document.createElement("span");
+        ssidSpan.className = "ssid";
+        ssidSpan.textContent = ap.ssid;
+
+        // графический индикатор уровня сигнала
+        const rssiBar = document.createElement("div");
+        rssiBar.className = "rssi-bar";
+
+        // нормализация RSSI -100..0 -> 0..100%
+        let signalStrength = Math.min(Math.max(ap.rssi + 100, 0), 100);
+        rssiBar.style.background = `linear-gradient(to right, green ${signalStrength}%, #ccc ${signalStrength}%)`;
+
+        // добавляем элементы в li
+        item.appendChild(ssidSpan);
+        item.appendChild(rssiBar);
+
+        // обработчик клика: заполняем поле ввода SSID
+        item.addEventListener("click", () => {
+            document.getElementById("sta-ssid").value = ap.ssid;
+        });
+
+        // добавляем элемент в список
         list.appendChild(item);
     });
 }
 
 //==========================================================================
+function TempSensorSettings(type) {    
+    if(type == "cube") {
+        fetch(`/api/tempsensor/rom/cube`)
+            .then(res => res.json())
+    }
+    else if(type == "column") {
+        fetch(`/api/tempsensor/rom/column`)
+            .then(res => res.json())
+    }
+}
+
+// При загрузке страницы
+document.addEventListener('DOMContentLoaded', function() 
+{
+    updateTempSensorROM();    
+    setInterval(updateTempSensorROM, 1000);
+});
+
+async function getTempROM() {
+    try 
+    {
+        const response = await fetch('/api/tempsensor/rom');
+        if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
+        const data = await response.json();
+        return data;
+    } 
+    catch (error) 
+    {
+        console.error('Ошибка получения ROM:', error);
+        return null;
+    }
+}
+
+// Обновить отображение статуса LED
+async function updateTempSensorROM() {
+    const panel = document.getElementById('temp-sensor-settings');
+    if (!panel || panel.offsetParent === null) return; // элемент реально скрыт
+    
+
+    const rom = await getTempROM();
+    console.log('Обновление ROM датчиков температуры:', rom);
+    if (!rom) return; // ошибка запроса
+
+    document.getElementById('temp-sensor-kube-rom').innerText = rom.kube;
+    document.getElementById('temp-sensor-column-rom').innerText = rom.column;
+}

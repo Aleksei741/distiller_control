@@ -2,26 +2,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "ESP-IDF: Set Environment",
-            "type": "shell",
-            "command": "cmd",
-            "args": [
-                "/c",
-                "call \"${config:idf.idfPath}/export.bat\""
-            ],
-            "options": {
-                "env": {
-                    "IDF_PATH": "${config:idf.idfPath}",
-                    "IDF_TOOLS_PATH": "${config:idf.idfToolsPath}",
-                    "PYTHON": "${config:idf.pythonBinPath}"
-                }
-            },
-            "presentation": {
-                "reveal": "silent"
-            }
-        },
-
-        {
             "label": "ESP-IDF: Build",
             "type": "shell",
             "command": "cmd",
@@ -49,12 +29,35 @@
 
         {
             "label": "ESP-IDF: Flash",
-            "dependsOn": "ESP-IDF: Build",
             "type": "shell",
             "command": "cmd",
             "args": [
                 "/c",
-                "call \"${config:idf.idfPath}\\export.bat\" && idf.py -p ${config:idf.comPort} flash"
+                "call \"${config:idf.idfPath}\\export.bat\" && idf.py -p ${config:idf.comPort} build flash"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "IDF_PATH": "${config:idf.idfPath}",
+                    "IDF_TOOLS_PATH": "${config:idf.idfToolsPath}",
+                    "PYTHON": "${config:idf.pythonBinPath}"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+
+        {
+            "label": "ESP-IDF: Build -> Flash -> Monitor",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "call \"${config:idf.idfPath}\\export.bat\" && idf.py -p ${config:idf.comPort} build flash monitor"
             ],
             "options": {
                 "cwd": "${workspaceFolder}",
@@ -74,7 +77,6 @@
 
         {
             "label": "ESP-IDF: Monitor",
-            "dependsOn": "ESP-IDF: Flash",
             "type": "shell",
             "command": "cmd",
             "args": [
@@ -156,6 +158,25 @@
             ],
             "options": {
                 "cwd": "${workspaceFolder}/tools",
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+
+        {
+            "label": "ESP-IDF: add-dependency",
+            "type": "shell",
+            "command": "\"${workspaceFolder}/tools/add_dependency.bat\"",
+            "args": [
+                "${config:idf.idfPath}",
+                "${config:idf.idfToolsPath}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
             },
             "presentation": {
                 "echo": true,

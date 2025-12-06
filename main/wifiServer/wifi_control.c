@@ -3,6 +3,7 @@
 //******************************************************************************
 #include "wifi_control.h"
 #include "parameters.h"
+#include "mDNS_.h"
 
 #include "nvs_flash.h"
 #include "esp_err.h"
@@ -147,6 +148,9 @@ void wifi_start_ap_sta(const wifi_settings_t *cfg_sta, const wifi_settings_t *cf
     {
         ESP_LOGI(TAG, "Running in AP-only mode");
     }
+
+    // Инициализация mDNS
+    init_mdns();
 }
 //------------------------------------------------------------------------------
 void wifi_reinit_sta(const wifi_settings_t *new_cfg_sta)
@@ -175,6 +179,9 @@ void wifi_reinit_sta(const wifi_settings_t *new_cfg_sta)
     ESP_ERROR_CHECK(esp_wifi_connect());
 
     ESP_LOGI(TAG, "Reconnecting to new STA network...");
+
+    // Инициализация mDNS
+    init_mdns();
 }
 //------------------------------------------------------------------------------
 static void wifi_sta_scan_task(void *arg)
@@ -314,5 +321,8 @@ void wifi_reinit_ap(const wifi_settings_t *new_cfg_ap)
     }
 
     ESP_LOGI(TAG, "AP configuration updated successfully");
+
+    // Инициализация mDNS
+    init_mdns();
 }
 //------------------------------------------------------------------------------

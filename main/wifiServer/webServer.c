@@ -56,18 +56,21 @@ esp_err_t send_file(httpd_req_t *req, const char *path, const char *content_type
 esp_err_t index_handler(httpd_req_t *req);
 esp_err_t css_handler(httpd_req_t *req);
 esp_err_t js_handler(httpd_req_t *req);
-esp_err_t led_handler(httpd_req_t *req);
 esp_err_t chartjs_handler(httpd_req_t *req);
+esp_err_t ico_handler(httpd_req_t *req);
 
-esp_err_t led_api_handler(httpd_req_t *req);
 esp_err_t get_led_status_handler(httpd_req_t *req);
 esp_err_t set_led_handler(httpd_req_t *req);
 
-esp_err_t wifi_api_handler(httpd_req_t *req);
+esp_err_t wifi_set_ap_handler(httpd_req_t *req);
 esp_err_t wifi_set_sta_handler(httpd_req_t *req);
 esp_err_t wifi_sta_start_scan_handler(httpd_req_t *req);
 esp_err_t wifi_sta_scan_isdone_handler(httpd_req_t *req);
 esp_err_t wifi_sta_scan_result_handler(httpd_req_t *req);
+
+esp_err_t tempsensor_rom_handler(httpd_req_t *req);
+esp_err_t tempsensor_set_rom_cube_handler(httpd_req_t *req);
+esp_err_t tempsensor_set_rom_column_handler(httpd_req_t *req);
 //******************************************************************************
 // Function
 //******************************************************************************
@@ -81,6 +84,8 @@ httpd_handle_t start_webserver(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server = NULL;
+    config.max_uri_handlers = 16; // Увеличение количества URI обработчиков
+
     if (httpd_start(&server, &config) == ESP_OK) 
     {
         ESP_LOGW(TAG, "Registering URI handlers");
@@ -90,19 +95,40 @@ httpd_handle_t start_webserver(void)
         httpd_uri_t css_uri = { .uri = "/style.css", .method = HTTP_GET, .handler = css_handler };
         httpd_uri_t js_uri = { .uri = "/app.js", .method = HTTP_GET, .handler = js_handler };
         httpd_uri_t chartjs_uri = { .uri = "/chart.umd.min.js", .method = HTTP_GET, .handler = chartjs_handler };
+        httpd_uri_t ico_uri = { .uri = "/favicon.ico", .method = HTTP_GET, .handler = ico_handler };
         httpd_register_uri_handler(server, &index_uri);
         httpd_register_uri_handler(server, &css_uri);
         httpd_register_uri_handler(server, &js_uri);
         httpd_register_uri_handler(server, &chartjs_uri);
+        httpd_register_uri_handler(server, &ico_uri);
 
         // Регистрация URI обработчиков для управления светодиодом
-        httpd_uri_t led_uri = { .uri = "/api/led*", .method = HTTP_GET, .handler = led_api_handler }; 
-        httpd_register_uri_handler(server, &led_uri);
+        httpd_uri_t led_status_uri = {.uri = "/api/led/status", .method = HTTP_GET, .handler = get_led_status_handler};
+        httpd_uri_t led_toggle_uri = {.uri = "/api/led/toggle", .method = HTTP_GET, .handler = set_led_handler};
+        httpd_register_uri_handler(server, &led_status_uri);
+        httpd_register_uri_handler(server, &led_toggle_uri);
 
         // Регистрация URI обработчиков для управления WiFi
-        httpd_uri_t wifi_api_uri = {.uri = "/api/wifi/sta*", .method = HTTP_GET, .handler = wifi_api_handler, .user_ctx = NULL};
-        httpd_register_uri_handler(server, &wifi_api_uri);
+        httpd_uri_t wifi_ap_uri = { .uri="/api/wifi/ap", .method=HTTP_GET, .handler=wifi_set_ap_handler };
+        httpd_uri_t wifi_sta_uri = { .uri="/api/wifi/sta", .method=HTTP_GET, .handler=wifi_set_sta_handler };
+        httpd_uri_t wifi_scan_start_uri  = { .uri="/api/wifi/sta/scan/start",  .method=HTTP_GET, .handler=wifi_sta_start_scan_handler };
+        httpd_uri_t wifi_scan_isdone_uri = { .uri="/api/wifi/sta/scan/isdone", .method=HTTP_GET, .handler=wifi_sta_scan_isdone_handler };
+        httpd_uri_t wifi_scan_result_uri = { .uri="/api/wifi/sta/scan/result", .method=HTTP_GET, .handler=wifi_sta_scan_result_handler };
+        httpd_register_uri_handler(server, &wifi_ap_uri);
+        httpd_register_uri_handler(server, &wifi_sta_uri);
+        httpd_register_uri_handler(server, &wifi_scan_start_uri);
+        httpd_register_uri_handler(server, &wifi_scan_isdone_uri);
+        httpd_register_uri_handler(server, &wifi_scan_result_uri);
+
+        // Регистрация URI обработчиков для работы с датчиком температуры
+        httpd_uri_t tempsensor_get_rom_uri = { .uri="/api/tempsensor/rom", .method=HTTP_GET, .handler=tempsensor_rom_handler };
+        httpd_uri_t tempsensor_rom_cube_uri = { .uri="/api/tempsensor/rom/cube", .method=HTTP_GET, .handler=tempsensor_set_rom_cube_handler };
+        httpd_uri_t tempsensor_rom_column_uri = { .uri="/api/tempsensor/rom/column", .method=HTTP_GET, .handler=tempsensor_set_rom_column_handler };
+        httpd_register_uri_handler(server, &tempsensor_get_rom_uri);
+        httpd_register_uri_handler(server, &tempsensor_rom_cube_uri);
+        httpd_register_uri_handler(server, &tempsensor_rom_column_uri);
     }
+
     return server;
 }
 //------------------------------------------------------------------------------
@@ -184,22 +210,14 @@ esp_err_t chartjs_handler(httpd_req_t *req)
     return send_file(req, "/spiffs/chart.umd.min.js", "application/javascript");
 }
 //------------------------------------------------------------------------------
+esp_err_t ico_handler(httpd_req_t *req)
+{
+    return send_file(req, "/spiffs/favicon.ico", "image/x-icon");
+}
+//------------------------------------------------------------------------------
 // LED Handlers
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-esp_err_t led_api_handler(httpd_req_t *req)
-{
-    const char* uri = req->uri;
-
-    if (strcmp(uri, "/api/led/status") == 0)
-        return get_led_status_handler(req);
-    else if (strcmp(uri, "/api/led/toggle") == 0)
-        return set_led_handler(req);
-
-    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Unknown LED API");
-    return ESP_FAIL;
-}
-//------------------------------------------------------------------------------    
 esp_err_t get_led_status_handler(httpd_req_t *req) 
 {
     char buffer[64];
@@ -249,21 +267,66 @@ esp_err_t set_led_handler(httpd_req_t *req)
 // wifi handlers
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-esp_err_t wifi_api_handler(httpd_req_t *req)
+esp_err_t wifi_set_ap_handler(httpd_req_t *req)
 {
-    const char* uri = req->uri;
+    char query[128] = {0};
+    char ssid[64] = {0};
+    char pass[64] = {0};
 
-    if (strcmp(uri, "/api/wifi/sta") == 0) 
-        return wifi_set_sta_handler(req);
-    else if (strcmp(uri, "/api/wifi/sta/scan/start") == 0)
-        return wifi_sta_start_scan_handler(req);
-    else if (strcmp(uri, "/api/wifi/sta/scan/isdone") == 0)
-        return wifi_sta_scan_isdone_handler(req);
-    else if (strcmp(uri, "/api/wifi/sta/scan/result") == 0)
-        return wifi_sta_scan_result_handler(req);
+    // Получаем длину query-параметров
+    size_t query_len = httpd_req_get_url_query_len(req);
 
-    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Unknown API");
-    return ESP_FAIL;
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, "{\"status\": \"ok\"}");
+
+    if (query_len == 0) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No query params");
+        return ESP_FAIL;
+    }
+
+    if (query_len + 1 > sizeof(query)) 
+    {
+        httpd_resp_send_err(req, HTTPD_414_URI_TOO_LONG, "Query too long");
+        return ESP_FAIL;
+    }
+
+    // Читаем строку вида "ssid=22222222&pass=1111111"
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Bad query");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "Query: %s", query);
+
+    // Извлекаем ssid
+    if (httpd_query_key_value(query, "ssid", ssid, sizeof(ssid)) != ESP_OK) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing ssid");
+        return ESP_FAIL;
+    }
+
+    // Извлекаем pass
+    if (httpd_query_key_value(query, "pass", pass, sizeof(pass)) != ESP_OK) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing pass");
+        return ESP_FAIL;
+    }
+
+    // Логируем
+    ESP_LOGI(TAG, "SSID: %s", ssid);
+    ESP_LOGI(TAG, "PASS: %s", pass);
+
+    wifi_settings_t wifi_settings;
+    strncpy(wifi_settings.ssid, ssid, sizeof(wifi_settings.ssid) - 1);
+    strncpy(wifi_settings.pass, pass, sizeof(wifi_settings.pass) - 1);      
+
+    // Сохраняем настройки WiFi
+    save_wifi_ap_settings(&wifi_settings);
+    wifi_reinit_ap(&wifi_settings);
+
+    return ESP_OK;
 }
 //------------------------------------------------------------------------------
 esp_err_t wifi_set_sta_handler(httpd_req_t *req)
@@ -383,7 +446,43 @@ esp_err_t wifi_sta_scan_result_handler(httpd_req_t *req)
     httpd_resp_sendstr_chunk(req, NULL);
     return ESP_OK;
 }
+//------------------------------------------------------------------------------
+// Temperature Sensor Handlers
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+esp_err_t tempsensor_rom_handler(httpd_req_t *req)
+{
+    char buffer[128];
 
+    int len = snprintf(buffer, sizeof(buffer), 
+                      "{\"kube\": \"0x01 0x23 0x45 0x67 0x89 0xAB 0xCD 0xEF\", \"column\": \"0xEF 0x33 0x44 0x57 0x66 0xAB 0xCD 0x22\"}");
+    
+    if (len < 0 || len >= sizeof(buffer))
+    {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+    
+    ESP_LOGI(TAG, "Getting temp sensor ROMs");
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, buffer, len);
+    return ESP_OK;
+}
+esp_err_t tempsensor_set_rom_cube_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "Setting cube ROM");
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, "{\"status\": \"kube ROM set\"}");
+    return ESP_OK;
+}
+esp_err_t tempsensor_set_rom_column_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "Setting column ROM");
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, "{\"status\": \"column ROM set\"}");
+    return ESP_OK;
+}
 
 // Для JSON
 // httpd_resp_set_type(req, "application/json");

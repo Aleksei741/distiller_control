@@ -40,19 +40,12 @@ input, select, button {
 section {
     padding: 20px;
     margin: 20px 10px;
-    background: linear-gradient(135deg, #98a8f0, #ced4da);
+    background: linear-gradient(135deg, #7787ce, #2222c2);
     background-size: 300% 300%;
-    animation: gradientFlow 16s cubic-bezier(0.77, 0, 0.175, 1) ease infinite;
+    animation: gradientFlow 16s infinite;
     border-radius: 10px;
     box-shadow: 0 0 15px rgba(0,0,0,0.2);
     color: #fff; /* Чтобы текст хорошо читался */
-}
-
-.container .statistic-section {
-    display: none;
-    max-width: 100%; /* Не превышать ширину контейнера */
-    margin: 20px auto; /* Центрирование и отступы сверху/снизу */
-    box-sizing: border-box; /* Важно для корректного расчета ширины */
 }
 
 @keyframes gradientFlow {
@@ -67,17 +60,6 @@ section {
     100% { background-position:   0% 100%; }
 }
 
-/*=============================================================*/
-/* график */
-#chart {
-    background: #f0f0f0;
-    border-radius: 5px;
-    margin-top: 10px;
-}
-
-#statistic-section {
-    display: none;
-}
 /*=============================================================*/
 /* Контейнер для кнопок в header*/
 /* Обёртка для каждой кнопки */
@@ -153,7 +135,7 @@ section {
     align-items: center;      /* выравнивание по вертикали */
     gap: 12px;                /* расстояние между SVG и кнопкой */
     padding: 10px 0;
-    justify-content: flex-end;
+    justify-content: center;
 }
 
 #control-led-section button {
@@ -173,7 +155,116 @@ section {
 }
 
 #control-led-section button:active {
-    background-color: #176fb0;
+    transform: translateY(1px);
+}
+
+/*=============================================================*/
+/* график */
+#chart {
+    background: #f0f0f0;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+#statistic-section {
+    display: none;
+}
+
+#status-section {
+    display: block;
+}
+
+/*=============================================================*/
+/* Настройка */
+/* Датчиков температуры */
+/* Общий стиль секции */
+#temp-sensor-settings {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+#temp-sensor-settings {
+    display: none;
+}
+
+#temp-sensor-settings h2 {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+}
+
+#temp-sensor-settings text,
+#temp-sensor-settings p {
+  display: block;
+  margin: 10px 0 20px;
+  color: #555;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+/* Стиль для каждого датчика */
+#temp-sensor-settings > div:not(#temp-sensor-kube):not(:first-child),
+#temp-sensor-kube {
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+#temp-sensor-settings label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #34495e;
+}
+
+#temp-sensor-settings div > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#temp-sensor-settings text {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #080808;
+}
+
+/* ROM-адрес — выделяем */
+#temp-sensor-settings [id$="-rom"] {
+  background-color: #f1f1f1;
+  padding: 4px 8px;
+  border-radius: 4px;
+  min-width: 220px;
+  text-align: left;
+}
+
+/* Кнопка "Задать" */
+#temp-sensor-settings button {
+    padding: 8px 16px;
+    margin: 0px 20px;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    background-color: #2196F3;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#temp-sensor-settings button:hover {
+  background-color: #1b7fcc;
+}
+
+#temp-sensor-settings button:active {
+  transform: translateY(1px);
 }
 
 /*=============================================================*/
@@ -270,13 +361,39 @@ section {
     background-color: #4d4e4c;
 }
 
-#wifi-list li {
+.wifi-list {
+    list-style: none; /* убираем маркеры */
+    padding: 0;
+    margin: 0;
+}
+
+/* Каждый элемент списка */
+.wifi-list li {
+    display: flex;
+    justify-content: space-between; /* SSID слева, сигнал справа */
+    align-items: center;
     padding: 6px 10px;
     cursor: pointer;
     border-bottom: 1px solid #ddd;
+    transition: background-color 0.2s;
 }
 
-#wifi-list li:hover {
+.wifi-list li:hover {
     background-color: #eee;
+}
+
+/* SSID внутри элемента */
+.wifi-list li span.ssid {
+    flex: 1; /* занимает всё доступное место */
+}
+
+/* Полоса сигнала */
+.wifi-list li .rssi-bar {
+    width: 50px;
+    height: 10px;
+    border-radius: 5px;
+    background-color: #ccc;
+    margin-left: 10px;
+    flex-shrink: 0;
 }
 /*=============================================================*/

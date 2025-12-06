@@ -10,6 +10,7 @@
 #define DEFAULT_PARAM_STA_WIFI_PASS         ""
 #define DEFAULT_PARAM_AP_WIFI_SSID          "distiller_control"
 #define DEFAULT_PARAM_AP_WIFI_PASS          "123456789"
+#define MIN_WIFI_PASS_LEN 8
 //******************************************************************************
 // Секция определения типов
 //******************************************************************************
@@ -30,7 +31,7 @@ void parameters_init(void);
 esp_err_t load_wifi_sta_settings(wifi_settings_t *out);
 esp_err_t save_wifi_sta_settings(const wifi_settings_t *in);
 esp_err_t load_wifi_ap_settings(wifi_settings_t *out);
-esp_err_t save_wifi_ap_settings(const wifi_settings_t *in);
+esp_err_t save_wifi_ap_settings(wifi_settings_t *in);
 //******************************************************************************
 // Секция определения макросов
 //******************************************************************************
