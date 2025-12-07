@@ -8,12 +8,22 @@
 #include "esp_log.h"
 #include "esp_err.h" 
 //******************************************************************************
+// Macros
+//******************************************************************************
+#define LOG_ROM(prefix, rom) \
+    ESP_LOGI(TAG, prefix " ROM = %02x %02x %02x %02x %02x %02x %02x %02x", \
+             rom[0], rom[1], rom[2], rom[3], rom[4], rom[5], rom[6], rom[7])
+
+//******************************************************************************
 // Cinstants
 //******************************************************************************
-#define KEY_STA_SSID                        "ssid_sta"
-#define KEY_STA_PASS                        "pass_sta"
-#define KEY_AP_SSID                         "ssid_ap"
-#define KEY_AP_PASS                         "pass_ap"
+#define KEY_STA_SSID                        "1"
+#define KEY_STA_PASS                        "2"
+#define KEY_AP_SSID                         "3"
+#define KEY_AP_PASS                         "4"
+
+#define KEY_COLUMN_TEMP_SENSOR_ROM          "5"
+#define KEY_KUBE_TEMP_SENSOR_ROM            "6"
 //******************************************************************************
 // Type
 //******************************************************************************
@@ -49,15 +59,28 @@ esp_err_t save_wifi_settings(const wifi_config_desc_t *cfg, const wifi_settings_
 //******************************************************************************
 // Function
 //******************************************************************************
+void parameters_init(void)
+{
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) 
+    {
+        ESP_LOGW(TAG, "NVS partition is full or has new version, erasing...");
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    ESP_LOGI(TAG, "NVS initialized successfully");
+}
 
 //------------------------------------------------------------------------------
-// Parameters wifi sta
+// Parameters wifi 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 esp_err_t load_wifi_settings(const wifi_config_desc_t *cfg, wifi_settings_t *out)
 {
     nvs_handle_t h;
-    esp_err_t err = nvs_open("wifi_cfg", NVS_READONLY, &h);
+    esp_err_t err = nvs_open("dc", NVS_READONLY, &h);
 
     if (err != ESP_OK) 
     {
@@ -105,7 +128,7 @@ esp_err_t load_wifi_settings(const wifi_config_desc_t *cfg, wifi_settings_t *out
 esp_err_t save_wifi_settings(const wifi_config_desc_t *cfg, const wifi_settings_t *in)
 {
     nvs_handle_t h;
-    nvs_open("wifi_cfg", NVS_READWRITE, &h);
+    nvs_open("dc", NVS_READWRITE, &h);
     nvs_set_str(h, cfg->key_ssid, in->ssid);
     nvs_set_str(h, cfg->key_pass, in->pass);
     nvs_commit(h);
@@ -118,20 +141,6 @@ esp_err_t save_wifi_settings(const wifi_config_desc_t *cfg, const wifi_settings_
 }
 //------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
-void parameters_init(void)
-{
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) 
-    {
-        ESP_LOGW(TAG, "NVS partition is full or has new version, erasing...");
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-
-    ESP_LOGI(TAG, "NVS initialized successfully");
-}
 //------------------------------------------------------------------------------
 esp_err_t load_wifi_sta_settings(wifi_settings_t *out)
 {
@@ -204,4 +213,108 @@ esp_err_t save_wifi_ap_settings(wifi_settings_t *in)
 
     return save_wifi_settings(&WIFI_STA_CFG, in);
 }
+
 //------------------------------------------------------------------------------
+// Parameters temperature sensor
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+esp_err_t load_column_rom_temperature_sensor(uint8_t *out_rom)
+{
+    nvs_handle_t h;
+    esp_err_t err = nvs_open("dc", NVS_READONLY, &h);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_column_rom_temperature_sensor: nvs_open failed err: %d", err);
+        return err;
+    }
+
+    size_t required_size = 8;
+    err = nvs_get_blob(h, KEY_COLUMN_TEMP_SENSOR_ROM, out_rom, &required_size);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_column_rom_temperature_sensor: no saved ROM err: %d", err);
+        nvs_close(h);
+        return err;
+    }
+
+    LOG_ROM("Loaded COLUMN", out_rom);
+
+    nvs_close(h);
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t save_column_rom_temperature_sensor(const uint8_t *in_rom)
+{
+    nvs_handle_t h;
+    esp_err_t err = nvs_open("dc", NVS_READWRITE, &h);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "save_column_rom_temperature_sensor: nvs_open failed err: %d", err);
+        return err;
+    }
+
+    err = nvs_set_blob(h, KEY_COLUMN_TEMP_SENSOR_ROM, in_rom, 8);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "save_column_rom_temperature_sensor: nvs_set_blob failed err: %d", err);
+        nvs_close(h);
+        return err;
+    }
+
+    err = nvs_commit(h);
+    nvs_close(h);
+
+    LOG_ROM("Saved COLUMN", in_rom);
+
+    return err;
+}
+//------------------------------------------------------------------------------
+esp_err_t load_kube_rom_temperature_sensor(uint8_t *out_rom)
+{
+    nvs_handle_t h;
+    esp_err_t err = nvs_open("dc", NVS_READONLY, &h);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_kube_rom_temperature_sensor: nvs_open failed err: %d", err);
+        return err;
+    }
+
+    size_t required_size = 8;
+    err = nvs_get_blob(h, KEY_KUBE_TEMP_SENSOR_ROM, out_rom, &required_size);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_kube_rom_temperature_sensor: no saved ROM err: %d", err);
+        nvs_close(h);
+        return err;
+    }
+
+    LOG_ROM("Loaded KUBE", out_rom);
+
+    nvs_close(h);
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t save_kube_rom_temperature_sensor(const uint8_t *in_rom)
+{
+    nvs_handle_t h;
+    esp_err_t err = nvs_open("dc", NVS_READWRITE, &h);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "save_kube_rom_temperature_sensor: nvs_open failed err: %d", err);
+        return err;
+    }
+
+    err = nvs_set_blob(h, KEY_KUBE_TEMP_SENSOR_ROM, in_rom, 8);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "save_kube_rom_temperature_sensor: nvs_set_blob failed err: %d", err);
+        nvs_close(h);
+        return err;
+    }
+
+    err = nvs_commit(h);
+    nvs_close(h);
+
+    LOG_ROM("Saved KUBE", in_rom);
+
+    return err;
+}
+

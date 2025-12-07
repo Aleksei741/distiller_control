@@ -14,6 +14,7 @@
 #include "led.h"
 #include "wifi_control.h"
 #include "parameters.h"
+#include "distiller_control.h"
 //******************************************************************************
 // Cinstants
 //******************************************************************************
@@ -71,6 +72,8 @@ esp_err_t wifi_sta_scan_result_handler(httpd_req_t *req);
 esp_err_t tempsensor_rom_handler(httpd_req_t *req);
 esp_err_t tempsensor_set_rom_cube_handler(httpd_req_t *req);
 esp_err_t tempsensor_set_rom_column_handler(httpd_req_t *req);
+
+esp_err_t get_status_distiler_control_handler(httpd_req_t *req);
 //******************************************************************************
 // Function
 //******************************************************************************
@@ -127,6 +130,10 @@ httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &tempsensor_get_rom_uri);
         httpd_register_uri_handler(server, &tempsensor_rom_cube_uri);
         httpd_register_uri_handler(server, &tempsensor_rom_column_uri);
+
+        // Регистрация URI обработчика для получения статуса управления дистиллятором
+        httpd_uri_t distiller_status_uri = { .uri="/api/distiller/status", .method=HTTP_GET, .handler=get_status_distiler_control_handler };
+        httpd_register_uri_handler(server, &distiller_status_uri);
     }
 
     return server;
@@ -452,37 +459,90 @@ esp_err_t wifi_sta_scan_result_handler(httpd_req_t *req)
 //------------------------------------------------------------------------------
 esp_err_t tempsensor_rom_handler(httpd_req_t *req)
 {
-    char buffer[128];
-
-    int len = snprintf(buffer, sizeof(buffer), 
-                      "{\"kube\": \"0x01 0x23 0x45 0x67 0x89 0xAB 0xCD 0xEF\", \"column\": \"0xEF 0x33 0x44 0x57 0x66 0xAB 0xCD 0x22\"}");
-    
-    if (len < 0 || len >= sizeof(buffer))
-    {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
-    }
-    
-    ESP_LOGI(TAG, "Getting temp sensor ROMs");
+    uint8_t rom[8];
+    char buf[256];
 
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, buffer, len);
+    httpd_resp_sendstr_chunk(req, "{");
+
+    // Column
+    get_dc_parameters(DC_COLUMN_ROM, rom);
+    snprintf(buf, sizeof(buf),
+             "\"column\": \"0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\"",
+             rom[0], rom[1], rom[2], rom[3], rom[4], rom[5], rom[6], rom[7]);
+    httpd_resp_sendstr_chunk(req, buf);
+
+    httpd_resp_sendstr_chunk(req, ", ");
+
+    // Kube
+    get_dc_parameters(DC_KUBE_ROM, rom);
+    snprintf(buf, sizeof(buf),
+             "\"kube\": \"0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\"",
+             rom[0], rom[1], rom[2], rom[3], rom[4], rom[5], rom[6], rom[7]);
+    httpd_resp_sendstr_chunk(req, buf);
+
+    httpd_resp_sendstr_chunk(req, "}");
+    httpd_resp_sendstr_chunk(req, NULL);
+
     return ESP_OK;
 }
+//------------------------------------------------------------------------------
 esp_err_t tempsensor_set_rom_cube_handler(httpd_req_t *req)
 {
-    ESP_LOGI(TAG, "Setting cube ROM");
+    send_dc_command(DC_REQUEST_INIT_KUBE_ROM);
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, "{\"status\": \"kube ROM set\"}");
     return ESP_OK;
 }
+//------------------------------------------------------------------------------
 esp_err_t tempsensor_set_rom_column_handler(httpd_req_t *req)
 {
-    ESP_LOGI(TAG, "Setting column ROM");
+    send_dc_command(DC_REQUEST_INIT_COLUMN_ROM);    
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, "{\"status\": \"column ROM set\"}");
     return ESP_OK;
 }
+
+//------------------------------------------------------------------------------
+// Distiller control Handlers
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+esp_err_t get_status_distiler_control_handler(httpd_req_t *req)
+{
+    dc_status_t status;
+    char buf[128];
+
+    if (!get_dc_status(&status)) 
+    {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr_chunk(req, "{");
+
+    // Column Temperature
+    snprintf(buf, sizeof(buf), "\"temperature_column\": %.2f", status.temperature_column);
+    httpd_resp_sendstr_chunk(req, buf);
+
+    httpd_resp_sendstr_chunk(req, ", ");
+
+    // Kube Temperature
+    snprintf(buf, sizeof(buf), "\"temperature_kube\": %.2f", status.temperature_kube);
+    httpd_resp_sendstr_chunk(req, buf);
+
+    httpd_resp_sendstr_chunk(req, ", ");
+
+    // Radiator Temperature
+    snprintf(buf, sizeof(buf), "\"temperature_radiator\": %.2f", status.temperature_radiator);
+    httpd_resp_sendstr_chunk(req, buf);
+
+    httpd_resp_sendstr_chunk(req, "}");
+    httpd_resp_sendstr_chunk(req, NULL);
+
+    return ESP_OK;
+}
+
 
 // Для JSON
 // httpd_resp_set_type(req, "application/json");

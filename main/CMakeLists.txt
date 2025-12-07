@@ -1,5 +1,6 @@
 set(SOURCES
     main.c
+    distiller_control.c
     parameters/parameters.c
     wifiServer/wifi_control.c
     wifiServer/webServer.c

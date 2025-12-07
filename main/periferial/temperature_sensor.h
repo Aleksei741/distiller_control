@@ -3,7 +3,7 @@
 // Секция include
 //******************************************************************************
 #include <stdint.h>
-
+#include <stdbool.h>
 #include "ds18b20.h"
 //******************************************************************************
 // Секция определения констант
@@ -24,6 +24,14 @@ typedef struct
 // Секция прототипов глобальных функций
 //******************************************************************************
 void init_temperature_sensor();
+
+float get_column_temperature();
+float get_kube_temperature();
+float get_radiator_temperature();
+void request_init_column_rom(void);
+void request_init_kube_rom(void);
+bool get_column_rom(uint8_t *out_rom);
+bool get_kube_rom(uint8_t *out_rom);
 //******************************************************************************
 // Секция определения макросов
 //******************************************************************************

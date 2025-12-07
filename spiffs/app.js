@@ -100,7 +100,6 @@ async function toggleLED() {
         console.error('Ошибка при переключении LED:', error);
         // При ошибке пытаемся получить актуальный статус
         updateLEDStatusDisplay();
-        alert('Не удалось переключить LED');
     }
 }
 
@@ -387,6 +386,7 @@ async function scanNetworks() {
 }
 
 //==========================================================================
+// Настройки датчиков температуры
 function TempSensorSettings(type) {    
     if(type == "cube") {
         fetch(`/api/tempsensor/rom/cube`)
@@ -432,4 +432,40 @@ async function updateTempSensorROM() {
 
     document.getElementById('temp-sensor-kube-rom').innerText = rom.kube;
     document.getElementById('temp-sensor-column-rom').innerText = rom.column;
+}
+//==========================================================================
+// Получение текущего статуса перегонного аппарата
+async function getDistillerStatus() {
+    try 
+    {
+        const response = await fetch('/api/distiller/status');
+        if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
+        const data = await response.json();
+        return data;
+    }
+    catch (error)
+    {
+        console.error('Ошибка получения статуса перегонного аппарата:', error);
+        return null;
+    }
+}
+
+// При загрузке страницы
+document.addEventListener('DOMContentLoaded', function() 
+{
+    updateDistillerStatus();    
+    setInterval(updateDistillerStatus, 1000);
+});
+
+// Обновить отображение статуса перегонного аппарата
+async function updateDistillerStatus() 
+{   
+    const panel = document.getElementById('status-section');
+    if(panel.style.display === 'none') return;
+
+    const status = await getDistillerStatus();
+    if (!status) return; // ошибка запроса
+
+    document.getElementById('temp-cube').textContent = status.temperature_kube.toFixed(2);
+    document.getElementById('temp-column').textContent = status.temperature_column.toFixed(2);
 }

@@ -25,6 +25,8 @@
 // Local Variable
 //------------------------------------------------------------------------------
 static const char *TAG = "mdns";
+
+static bool mdns_started = false;
 //------------------------------------------------------------------------------
 // Local Class
 //------------------------------------------------------------------------------
@@ -38,15 +40,29 @@ static const char *TAG = "mdns";
 //******************************************************************************
 void init_mdns(void)
 {
-    esp_err_t err = mdns_init();
-    if (err) 
+    esp_err_t err;
+
+    if (mdns_started)
     {
-        ESP_LOGE(TAG, "mdns_init failed: %x", err);
-        return;
+        // mDNS уже запущен — удаляем старые сервисы и перезапускаем
+        mdns_service_remove("_http", "_tcp");
+        ESP_LOGI(TAG, "mDNS: service removed, reinitializing...");
+    }
+    else
+    {
+        // Инициализация mDNS
+        err = mdns_init();
+        if (err != ESP_OK) 
+        {
+            ESP_LOGE(TAG, "mdns_init failed: %x", err);
+            return;
+        }
+        mdns_started = true;
     }
 
-    mdns_hostname_set("distiller_control");
-    mdns_instance_name_set("My ESP32");
+    // Настройка хоста и сервиса
+    mdns_hostname_set("distiller_control");        // имя для .local
+    mdns_instance_name_set("My ESP32");            // имя устройства
     mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
 
     ESP_LOGI(TAG, "mDNS started: http://distiller_control.local");

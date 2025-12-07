@@ -28,10 +28,16 @@ typedef struct
 // Секция прототипов глобальных функций
 //******************************************************************************
 void parameters_init(void);
+
 esp_err_t load_wifi_sta_settings(wifi_settings_t *out);
 esp_err_t save_wifi_sta_settings(const wifi_settings_t *in);
 esp_err_t load_wifi_ap_settings(wifi_settings_t *out);
 esp_err_t save_wifi_ap_settings(wifi_settings_t *in);
+
+esp_err_t load_column_rom_temperature_sensor(uint8_t *out_rom);
+esp_err_t save_column_rom_temperature_sensor(const uint8_t *in_rom);
+esp_err_t load_kube_rom_temperature_sensor(uint8_t *out_rom);
+esp_err_t save_kube_rom_temperature_sensor(const uint8_t *in_rom);
 //******************************************************************************
 // Секция определения макросов
 //******************************************************************************

@@ -2,6 +2,7 @@
 //******************************************************************************
 // Секция include
 //******************************************************************************
+#include <stdbool.h>
 #include <stdint.h>
 //******************************************************************************
 // Секция определения констант
@@ -10,12 +11,37 @@
 //******************************************************************************
 // Секция определения типов
 //******************************************************************************
+typedef enum
+{
+    DC_MANUAL_CONTROL,       // Ручное управление
+    DC_WASH_DISTILLATION,    // Авто: перегон браги → спирт сырец (first distillation / wash run)
+    DC_SPIRIT_RECTIFICATION  // Авто: перегон спиртсырца → очищенный спирт (rectification / spirit run)
+} dc_mode_e;
+
+typedef enum
+{
+    DC_REQUEST_INIT_COLUMN_ROM,
+    DC_REQUEST_INIT_KUBE_ROM,
+} dc_command_e;
+
+typedef enum
+{
+    DC_COLUMN_ROM,
+    DC_KUBE_ROM,
+} dc_parametes_e;
+
 typedef struct 
 {
-    uint8_t pin;
-    bool fInitialized;
-    uint8_t rom[8];
-} ds18b20_t;
+    float temperature_column;
+    float temperature_kube;
+    float temperature_radiator;
+
+} dc_status_t;
+
+typedef struct 
+{    
+
+} dc_params_t;
 //******************************************************************************
 // Секция определения глобальных переменных
 //******************************************************************************
@@ -23,10 +49,12 @@ typedef struct
 //******************************************************************************
 // Секция прототипов глобальных функций
 //******************************************************************************
-void init_ds18b20_gpio(ds18b20_t *ds18b20);
-bool ds18b20_read_rom(ds18b20_t *ds18b20);
-bool ds18b20_read_temp_rom(const ds18b20_t *ds18b20, float *temperature);
-bool ds18b20_read_temp_single(const ds18b20_t *ds18b20, float *temperature);
+void init_distiller_control();
+
+bool get_dc_parameters(dc_parametes_e param, void *out_params);
+bool set_dc_parameters(dc_parametes_e param, void *in_params);
+bool get_dc_status(dc_status_t *out_status); 
+void send_dc_command(dc_command_e command);
 //******************************************************************************
 // Секция определения макросов
 //******************************************************************************

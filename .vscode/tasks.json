@@ -124,6 +124,30 @@
         },
 
         {
+            "label": "ESP-IDF: Erase",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "call \"${config:idf.idfPath}\\export.bat\" && idf.py -p ${config:idf.comPort} erase_flash"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "IDF_PATH": "${config:idf.idfPath}",
+                    "IDF_TOOLS_PATH": "${config:idf.idfToolsPath}",
+                    "PYTHON": "${config:idf.pythonBinPath}"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+
+        {
             "label": "ESP-IDF: Test",
             "dependsOn": "ESP-IDF: Build",
             "type": "shell",

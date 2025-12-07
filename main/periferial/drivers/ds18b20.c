@@ -63,6 +63,8 @@ void init_ds18b20_gpio(ds18b20_t *ds18b20)
 // Поиск ROM-кода первого найденного датчика
 bool ds18b20_read_rom(ds18b20_t *ds18b20) 
 {
+    uint8_t data[9];
+
     if(!ds18b20_reset(ds18b20))
     {
         ESP_LOGW(TAG, "ds18b20_read_rom pin[%d] No presence pulse detected", ds18b20->pin);
@@ -71,17 +73,26 @@ bool ds18b20_read_rom(ds18b20_t *ds18b20)
 
     ds18b20_write_byte(ds18b20, 0x33); // Read ROM command
 
-    for (int i = 0; i < 8; i++) 
+    for (int i = 0; i < 8; i++)
+        data[i] = ds18b20_read_byte(ds18b20);
+
+    if(data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x00 &&
+       data[4] == 0x00 && data[5] == 0x00 && data[6] == 0x00 && data[7] == 0x00)
     {
-        ds18b20->rom[i] = ds18b20_read_byte(ds18b20);
+        ESP_LOGW(TAG, "ds18b20_read_rom pin[%d] not pull up the data line", ds18b20->pin);
+        return false;
     }
      
     uint8_t crc = ds18b20_crc8(ds18b20->rom, 7);
-    if (crc != ds18b20->rom[7]) {
-        ESP_LOGW(TAG, "ROM CRC error pin[%d]: calc=%02X recv=%02X",
+    if (crc != ds18b20->rom[7]) 
+    {
+        ESP_LOGW(TAG, "ds18b20_read_rom CRC error pin[%d]: calc=%02X recv=%02X",
                  ds18b20->pin, crc, ds18b20->rom[7]);
         return false;
     }
+
+    for (int i = 0; i < 8; i++)
+        ds18b20->rom[i] = data[i];
 
     return true;
 }
@@ -97,8 +108,7 @@ void ds18b20_match_rom(const ds18b20_t *ds18b20)
 // Чтение температуры конкретного датчика
 bool ds18b20_read_temp_rom(const ds18b20_t *ds18b20, float *temperature) 
 {
-    uint8_t data[9];
-    static bool g_first_reading_done = false;
+    uint8_t data[9] = {0};
     
     // Запускаем преобразование
     if (!ds18b20_reset(ds18b20)) return false;
@@ -113,36 +123,73 @@ bool ds18b20_read_temp_rom(const ds18b20_t *ds18b20, float *temperature)
     
     for (int i = 0; i < 9; i++)
         data[i] = ds18b20_read_byte(ds18b20);
+
+    if(data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x00 &&
+       data[4] == 0x00 && data[5] == 0x00 && data[6] == 0x00 && data[7] == 0x00)
+    {
+        ESP_LOGW(TAG, "ds18b20_read_temp_rom pin[%d] not pull up the data line", ds18b20->pin);
+        return false;
+    }
     
     // Проверка CRC
     if (ds18b20_crc8(data, 8) != data[8]) 
     {
         ESP_LOGW(TAG, "ds18b20_read_temp_rom pin[%d] CRC error", ds18b20->pin);
-        ESP_LOGI(TAG, "Data: %02X %02X %02X %02X %02X %02X %02X %02X %02X, CRC: %02X",
-                 data[0], data[1], data[2], data[3],
-                 data[4], data[5], data[6], data[7],
-                 data[8], ds18b20_crc8(data, 8));
         return false;
     }
 
-    int16_t temp_raw = (data[1] << 8) | data[0];
-    if (!g_first_reading_done) 
-    {
-        // Проверяем, не является ли это значениями по умолчанию после включения
-        // Температура 85°C + значения регистров по умолчанию
-        if (temp_raw == 0x0550 &&            // 85°C
-            data[2] == 0x4B &&               // TH = 75°C
-            data[3] == 0x46 &&               // TL = 70°C
-            data[4] == 0x7F)                 // Config = 12-bit
-        {
-            ESP_LOGW(TAG, "First reading contains default power-on values (85°C)");
-            g_first_reading_done = true;
-            return false;
-        }
-        g_first_reading_done = true;
-    }
-    
+    int16_t temp_raw = (data[1] << 8) | data[0];    
     *temperature = (float)temp_raw / 16.0f;       
+    return true;
+}
+//------------------------------------------------------------------------------
+// Чтение температуры при одиночном подключении датчика
+bool ds18b20_read_temp_single(const ds18b20_t *ds18b20, float *temperature)
+{
+    uint8_t data[9];
+
+    // Запуск конверсии
+    if (!ds18b20_reset(ds18b20)) 
+    {
+        ESP_LOGW(TAG, "ds18b20_read_temp_single pin[%d] No presence pulse 1", ds18b20->pin);
+        return false;
+    }
+
+    ds18b20_write_byte(ds18b20, 0xCC); // SKIP ROM
+    ds18b20_write_byte(ds18b20, 0x44); // CONVERT T
+
+    // Время преобразования (750 мс для 12-bit)
+    vTaskDelay(pdMS_TO_TICKS(750));
+
+    // Чтение скрэтчпада
+    if (!ds18b20_reset(ds18b20)) 
+    {
+        ESP_LOGW(TAG, "ds18b20_read_temp_single pin[%d] No presence pulse 2", ds18b20->pin);
+        return false;
+    }
+
+    ds18b20_write_byte(ds18b20, 0xCC); // SKIP ROM
+    ds18b20_write_byte(ds18b20, 0xBE); // READ SCRATCHPAD
+
+    for (int i = 0; i < 9; i++)
+        data[i] = ds18b20_read_byte(ds18b20);
+
+    if(data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x00 &&
+       data[4] == 0x00 && data[5] == 0x00 && data[6] == 0x00 && data[7] == 0x00)
+    {
+        ESP_LOGW(TAG, "ds18b20_read_temp_single pin[%d] not pull up the data line", ds18b20->pin);
+        return false;
+    }
+
+    // CRC
+    if (ds18b20_crc8(data, 8) != data[8]) 
+    {
+        ESP_LOGW(TAG, "ds18b20_read_temp_single pin[%d] CRC error", ds18b20->pin);
+        return false;
+    }
+
+    int16_t raw = (data[1] << 8) | data[0];
+    *temperature = raw / 16.0f;
     return true;
 }
 
