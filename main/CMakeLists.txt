@@ -1,6 +1,6 @@
 set(SOURCES
     main.c
-    distiller_control.c
+    controller/distiller_control.c
     parameters/parameters.c
     wifiServer/wifi_control.c
     wifiServer/webServer.c
@@ -9,10 +9,12 @@ set(SOURCES
     periferial/led.c
     periferial/temperature_sensor.c
     periferial/drivers/ds18b20.c
+    periferial/drivers/PID.c
 )
 
 set(INCLUDES
     "."
+    controller
     wifiServer
     parameters
     periferial
