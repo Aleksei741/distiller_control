@@ -5,6 +5,7 @@ set(SOURCES
     wifiServer/wifi_control.c
     wifiServer/webServer.c
     wifiServer/mDNS_.c
+    wifiServer/captive_dns.c
     periferial/led.c
     periferial/temperature_sensor.c
     periferial/drivers/ds18b20.c

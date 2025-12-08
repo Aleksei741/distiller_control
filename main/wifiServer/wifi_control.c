@@ -4,6 +4,7 @@
 #include "wifi_control.h"
 #include "parameters.h"
 #include "mDNS_.h"
+#include "captive_dns.h"
 
 #include "nvs_flash.h"
 #include "esp_err.h"
@@ -74,17 +75,31 @@ void wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     // 4. Регистрация обработчиков событий
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
-                                                        ESP_EVENT_ANY_ID,
-                                                        &wifi_event_handler,
-                                                        NULL,
-                                                        NULL));
+    // Нужно только для автоматического подключения
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+        WIFI_EVENT,
+        WIFI_EVENT_STA_START,
+        &wifi_event_handler,
+        NULL,
+        NULL
+    ));
 
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
-                                                        IP_EVENT_STA_GOT_IP,
-                                                        &wifi_event_handler,
-                                                        NULL,
-                                                        NULL));
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+        WIFI_EVENT,
+        WIFI_EVENT_STA_DISCONNECTED,
+        &wifi_event_handler,
+        NULL,
+        NULL
+    ));
+
+    // Нужно для запуска mDNS — единственное обязательное
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+        IP_EVENT,
+        IP_EVENT_STA_GOT_IP,
+        &wifi_event_handler,
+        NULL,
+        NULL
+    ));
 
     wifi_settings_t sta_cfg;
     wifi_settings_t ap_cfg;
@@ -162,6 +177,9 @@ void wifi_start_ap_sta(const wifi_settings_t *cfg_sta, const wifi_settings_t *cf
         ESP_LOGI(TAG, "AP IP address set to: 192.168.4.1");
     }
 
+    uint8_t redirect_ip[4] = {192, 168, 4, 1};
+    captive_dns_init(redirect_ip);
+
     if (sta_enabled) 
     {
         esp_err_t ret = esp_wifi_connect();
@@ -175,9 +193,6 @@ void wifi_start_ap_sta(const wifi_settings_t *cfg_sta, const wifi_settings_t *cf
     {
         ESP_LOGI(TAG, "Running in AP-only mode");
     }
-
-    // Инициализация mDNS
-    init_mdns();
 }
 //------------------------------------------------------------------------------
 void wifi_reinit_sta(const wifi_settings_t *new_cfg_sta)
@@ -206,9 +221,6 @@ void wifi_reinit_sta(const wifi_settings_t *new_cfg_sta)
     ESP_ERROR_CHECK(esp_wifi_connect());
 
     ESP_LOGI(TAG, "Reconnecting to new STA network...");
-
-    // Инициализация mDNS
-    init_mdns();
 }
 //------------------------------------------------------------------------------
 static void wifi_sta_scan_task(void *arg)
@@ -312,6 +324,8 @@ void wifi_reinit_ap(const wifi_settings_t *new_cfg_ap)
 {
     if (!new_cfg_ap) return;
 
+    captive_dns_stop();
+
     // 1. Сохраняем новые настройки в глобальные переменные
     strncpy(g_ap_cfg.ssid, new_cfg_ap->ssid, sizeof(g_ap_cfg.ssid));
     strncpy(g_ap_cfg.pass, new_cfg_ap->pass, sizeof(g_ap_cfg.pass));
@@ -347,70 +361,38 @@ void wifi_reinit_ap(const wifi_settings_t *new_cfg_ap)
         ESP_LOGI(TAG, "AP IP address set to: 192.168.4.1");
     }
 
-    ESP_LOGI(TAG, "AP configuration updated successfully");
+    uint8_t redirect_ip[4] = {192, 168, 4, 1};
+    captive_dns_init(redirect_ip);
 
-    // Инициализация mDNS
-    init_mdns();
+    ESP_LOGI(TAG, "AP configuration updated successfully");
 }
 //------------------------------------------------------------------------------
-static void wifi_event_handler(void* arg, esp_event_base_t event_base,
-                               int32_t event_id, void* event_data)
+static void wifi_event_handler(void* arg,
+                               esp_event_base_t event_base,
+                               int32_t event_id,
+                               void* event_data)
 {
     if (event_base == WIFI_EVENT)
     {
-        switch (event_id)
+        if (event_id == WIFI_EVENT_STA_START)
         {
-            case WIFI_EVENT_STA_START:
-                ESP_LOGI("[wifi_event]", "STA started, connecting...");
-                esp_wifi_connect();
-                break;
-
-            case WIFI_EVENT_STA_DISCONNECTED:
-                ESP_LOGW("[wifi_event]", "STA disconnected, reconnecting...");
-                esp_wifi_connect();
-                break;
-
-            case WIFI_EVENT_AP_STACONNECTED:
-            {
-                wifi_event_ap_staconnected_t *evt = (wifi_event_ap_staconnected_t*) event_data;
-                ESP_LOGI("[wifi_event]", "AP client connected: %02x:%02x:%02x:%02x:%02x:%02x",
-                         evt->mac[0], evt->mac[1], evt->mac[2],
-                         evt->mac[3], evt->mac[4], evt->mac[5]);
-
-                // mDNS можно инициализировать здесь, если AP поднят
-                init_mdns();
-                break;
-            }
-
-            case WIFI_EVENT_AP_STADISCONNECTED:
-            {
-                wifi_event_ap_stadisconnected_t *evt = (wifi_event_ap_stadisconnected_t*) event_data;
-                ESP_LOGI("[wifi_event]", "AP client disconnected: %02x:%02x:%02x:%02x:%02x:%02x",
-                         evt->mac[0], evt->mac[1], evt->mac[2],
-                         evt->mac[3], evt->mac[4], evt->mac[5]);
-                break;
-            }
-
-            default:
-                break;
+            ESP_LOGI("[wifi_event]", "STA started, connecting...");
+            esp_wifi_connect();
+        }
+        else if (event_id == WIFI_EVENT_STA_DISCONNECTED)
+        {
+            ESP_LOGW("[wifi_event]", "STA disconnected, reconnecting...");
+            esp_wifi_connect();
         }
     }
-    else if (event_base == IP_EVENT)
+    else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
     {
-        if (event_id == IP_EVENT_STA_GOT_IP)
-        {
-            ip_event_got_ip_t* evt = (ip_event_got_ip_t*) event_data;
-            ESP_LOGI("[wifi_event]", "STA got IP: " IPSTR, IP2STR(&evt->ip_info.ip));
+        ip_event_got_ip_t* evt = (ip_event_got_ip_t*) event_data;
 
-            init_mdns();
-        }
-        else if (event_id == IP_EVENT_AP_STAIPASSIGNED)
-        {
-            ip_event_ap_staipassigned_t* evt = (ip_event_ap_staipassigned_t*) event_data;
-            ESP_LOGI("[wifi_event]", "AP assigned IP to client: " IPSTR, IP2STR(&evt->ip));
+        ESP_LOGI("[wifi_event]", "STA got IP: " IPSTR,
+                 IP2STR(&evt->ip_info.ip));
 
-            init_mdns();
-        }
+        init_mdns();
     }
 }
 //------------------------------------------------------------------------------
