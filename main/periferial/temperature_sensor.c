@@ -41,6 +41,10 @@ static float radiator_temperature = 0.0f;
 
 bool fReadrColumnROM = false;
 bool fReadrKubeROM = false;
+
+bool fNewDataColumnTemp = false;
+bool fNewDataKubeTemp = false;
+bool fNewDataRadiatorTemp = false;
 //------------------------------------------------------------------------------
 // Local Class
 //------------------------------------------------------------------------------
@@ -78,7 +82,7 @@ void temperature_task(void *arg)
 {
     vTaskDelay(pdMS_TO_TICKS(100)); // Даем время на инициализацию
     
-    while (1)
+    while (true)
     {
         float t;
         bool fReadrColumnROM_ = 0;
@@ -131,6 +135,7 @@ void temperature_task(void *arg)
                 if (xSemaphoreTake(g_temp_mutex, portMAX_DELAY)) 
                 {
                     column_temperature = t;
+                    fNewDataColumnTemp = true;
                     xSemaphoreGive(g_temp_mutex);
                 }
         }
@@ -143,6 +148,7 @@ void temperature_task(void *arg)
                 if (xSemaphoreTake(g_temp_mutex, portMAX_DELAY)) 
                 {
                     kube_temperature = t;
+                    fNewDataKubeTemp = true;
                     xSemaphoreGive(g_temp_mutex);
                 }
         }
@@ -156,57 +162,64 @@ void temperature_task(void *arg)
             if (xSemaphoreTake(g_temp_mutex, portMAX_DELAY)) 
             {
                 radiator_temperature = t;
+                fNewDataRadiatorTemp = false;
                 xSemaphoreGive(g_temp_mutex);
             }
         }
 
-        vTaskDelay(pdMS_TO_TICKS(1000)); // раз в секунду
+        //vTaskDelay(pdMS_TO_TICKS(1000)); // раз в секунду
     }
 }
 //------------------------------------------------------------------------------
-float get_column_temperature()
+bool get_column_temperature(float* out)
 {
-    float temp = 0.0f;
+    bool flag = false;
     if (g_temp_mutex != NULL) 
     {
         if (xSemaphoreTake(g_temp_mutex, portMAX_DELAY)) 
         {
-            temp = column_temperature;
+            *out = column_temperature;
+            flag = fNewDataColumnTemp;
+            fNewDataColumnTemp = false;
             xSemaphoreGive(g_temp_mutex);
         }
     }
 
-    return temp;
+    return flag;
 }
 //------------------------------------------------------------------------------
-float get_kube_temperature()
+bool get_kube_temperature(float* out)
 {
-    float temp = 0.0f;
+    bool flag = false;
     if (g_temp_mutex != NULL) 
     {
         if (xSemaphoreTake(g_temp_mutex, portMAX_DELAY)) 
         {
-            temp = kube_temperature;
+            *out = kube_temperature;
+            flag = fNewDataKubeTemp;
+            fNewDataKubeTemp = false;
             xSemaphoreGive(g_temp_mutex);
         }
     }
         
-    return temp;
+    return flag;
 }
 //------------------------------------------------------------------------------
-float get_radiator_temperature()
+bool get_radiator_temperature(float* out)
 {
-    float temp = 0.0f;
+    bool flag = false;
     if (g_temp_mutex != NULL) 
     {
         if (xSemaphoreTake(g_temp_mutex, portMAX_DELAY)) 
         {
-            temp = radiator_temperature;
+            *out = radiator_temperature;
+            flag = fNewDataRadiatorTemp;
+            fNewDataRadiatorTemp = false;
             xSemaphoreGive(g_temp_mutex);
         }
     }
         
-    return temp;
+    return flag;
 }
 //------------------------------------------------------------------------------
 void request_init_column_rom(void)

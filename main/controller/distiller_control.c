@@ -75,9 +75,9 @@ void distiller_control_task(void *arg)
 
     while (1)
     {
-        status.temperature_column = get_column_temperature();
-        status.temperature_kube = get_kube_temperature();
-        status.temperature_radiator = get_radiator_temperature();
+        get_column_temperature(&status.temperature_column);
+        get_kube_temperature(&status.temperature_kube);
+        get_radiator_temperature(&status.temperature_radiator);
 
         if (xSemaphoreTake(g_mutex, portMAX_DELAY)) 
         {

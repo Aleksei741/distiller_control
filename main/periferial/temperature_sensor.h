@@ -12,10 +12,7 @@
 //******************************************************************************
 // Секция определения типов
 //******************************************************************************
-typedef struct 
-{
-    uint8_t rom_code[8];
-} ds18b20_addr_t;
+
 //******************************************************************************
 // Секция определения глобальных переменных
 //******************************************************************************
@@ -25,9 +22,9 @@ typedef struct
 //******************************************************************************
 void init_temperature_sensor();
 
-float get_column_temperature();
-float get_kube_temperature();
-float get_radiator_temperature();
+bool get_column_temperature(float* out);
+bool get_kube_temperature(float* out);
+bool get_radiator_temperature(float* out);
 void request_init_column_rom(void);
 void request_init_kube_rom(void);
 bool get_column_rom(uint8_t *out_rom);
