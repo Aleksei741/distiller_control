@@ -10,12 +10,14 @@ set(SOURCES
     periferial/temperature_sensor.c
     periferial/drivers/ds18b20.c
     controller/algorithm/PID.c
-    periferial/drivers/adc_drv.c
+    periferial/adc_drv.c
+    controller/algorithm/Measure220V.c
 )
 
 set(INCLUDES
     "."
     controller
+    controller/algorithm
     wifiServer
     parameters
     periferial

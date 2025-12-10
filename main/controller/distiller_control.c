@@ -9,6 +9,7 @@
 #include <wifi_control.h>
 #include <webServer.h>
 #include <led.h>
+#include <Measure220V.h>
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -56,7 +57,8 @@ void init_distiller_control()
     wifi_init();
     init_webserver();
     start_webserver();
-
+    Measure220V_init();
+    
     g_mutex = xSemaphoreCreateMutex();
     if (g_mutex == NULL) {
         ESP_LOGE(TAG, "Failed to create mutex");
