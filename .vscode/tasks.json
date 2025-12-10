@@ -231,6 +231,29 @@
                 "panel": "dedicated"
             },
             "problemMatcher": []
+        },
+
+        {
+            "label": "ESP-IDF Reconfigure",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/k",
+                "call \"${config:idf.idfPath}\\export.bat\" && idf.py reconfigure"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "IDF_PATH": "${config:idf.idfPath}",
+                    "IDF_TOOLS_PATH": "${config:idf.idfToolsPath}",
+                    "PYTHON": "${config:idf.pythonBinPath}"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
         }
     ]
 }

@@ -9,7 +9,8 @@ set(SOURCES
     periferial/led.c
     periferial/temperature_sensor.c
     periferial/drivers/ds18b20.c
-    periferial/drivers/PID.c
+    controller/algorithm/PID.c
+    periferial/drivers/adc_drv.c
 )
 
 set(INCLUDES
@@ -24,4 +25,4 @@ set(INCLUDES
 idf_component_register(SRCS ${SOURCES}
                        INCLUDE_DIRS ${INCLUDES}
                        PRIV_REQUIRES spiffs
-                       REQUIRES esp_driver_gpio esp_http_server driver esp_wifi esp_netif esp_event nvs_flash wpa_supplicant vfs lwip)
+                       REQUIRES esp_driver_gpio esp_http_server driver esp_wifi esp_netif esp_event nvs_flash wpa_supplicant vfs lwip esp_adc)
