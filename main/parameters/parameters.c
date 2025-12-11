@@ -24,6 +24,8 @@
 
 #define KEY_COLUMN_TEMP_SENSOR_ROM          "5"
 #define KEY_KUBE_TEMP_SENSOR_ROM            "6"
+
+#define KEY_CALIBRATION_220V                "7"
 //******************************************************************************
 // Type
 //******************************************************************************
@@ -318,3 +320,58 @@ esp_err_t save_kube_rom_temperature_sensor(const uint8_t *in_rom)
     return err;
 }
 
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// Measure 220 V
+//------------------------------------------------------------------------------
+esp_err_t load_calibration_220V(meas_220V_settings_t *calib)
+{
+    nvs_handle_t h;
+    esp_err_t err = nvs_open("dc", NVS_READONLY, &h);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_calibration_220V: nvs_open failed err: %d", err);
+        return err;
+    }
+
+    size_t required_size = sizeof(meas_220V_settings_t);
+    err = nvs_get_blob(h, KEY_CALIBRATION_220V, calib, &required_size);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_calibration_220V: no saved calibration data err: %d", err);
+        nvs_close(h);
+        return err;
+    }
+
+    ESP_LOGI("load_calibration_220V: zero_lvl: %d, ref_voltage: %f, ref_ESR: %f", 
+        calib->zero_lvl, calib->ref_voltage, calib->ref_ESR);
+
+    nvs_close(h);
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t save_calibration_220V(const meas_220V_settings_t *calib)
+{
+    nvs_handle_t h;
+    esp_err_t err = nvs_open("dc", NVS_READWRITE, &h);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "save_calibration_220V: nvs_open failed err: %d", err);
+        return err;
+    }
+
+    err = nvs_set_blob(h, KEY_CALIBRATION_220V, calib, sizeof(meas_220V_settings_t));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "save_calibration_220V: nvs_set_blob failed err: %d", err);
+        nvs_close(h);
+        return err;
+    }
+
+    err = nvs_commit(h);
+    nvs_close(h);
+    
+    ESP_LOGI("save_calibration_220V: zero_lvl: %d, ref_voltage: %f, ref_ESR: %f", 
+        calib->zero_lvl, calib->ref_voltage, calib->ref_ESR);
+
+    return err;
+}

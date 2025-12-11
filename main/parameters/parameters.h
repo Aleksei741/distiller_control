@@ -20,6 +20,12 @@ typedef struct
     char pass[64];
 } wifi_settings_t;
 
+typedef struct 
+{
+    uint16_t zero_lvl;
+    double ref_voltage;
+    double ref_ESR;
+} meas_220V_settings_t;
 //******************************************************************************
 // Секция определения глобальных переменных
 //******************************************************************************
@@ -38,6 +44,9 @@ esp_err_t load_column_rom_temperature_sensor(uint8_t *out_rom);
 esp_err_t save_column_rom_temperature_sensor(const uint8_t *in_rom);
 esp_err_t load_kube_rom_temperature_sensor(uint8_t *out_rom);
 esp_err_t save_kube_rom_temperature_sensor(const uint8_t *in_rom);
+
+esp_err_t load_calibration_220V(meas_220V_settings_t *calib);
+esp_err_t save_calibration_220V(const meas_220V_settings_t *calib);
 //******************************************************************************
 // Секция определения макросов
 //******************************************************************************
