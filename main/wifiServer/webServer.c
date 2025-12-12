@@ -14,6 +14,7 @@
 #include "led.h"
 #include "wifi_control.h"
 #include "parameters.h"
+#include "statistic.h"
 #include "distiller_control.h"
 //******************************************************************************
 // Cinstants
@@ -34,16 +35,6 @@
 // Local Variable
 //------------------------------------------------------------------------------
 static const char *TAG = "[webServer]";
-#define LED_GPIO 2  // Пин для светодиода
-
-// Веб-страница
-const char html_page[] = "<html>\
-<head><title>ESP32 Control</title></head>\
-<body>\
-<h2>ESP32 Web Server</h2>\
-<button onclick=\"fetch('/led/on')\">Turn ON</button>\
-<button onclick=\"fetch('/led/off')\">Turn OFF</button>\
-</body></html>";
 
 //------------------------------------------------------------------------------
 // Local Class
@@ -74,6 +65,8 @@ esp_err_t tempsensor_set_rom_cube_handler(httpd_req_t *req);
 esp_err_t tempsensor_set_rom_column_handler(httpd_req_t *req);
 
 esp_err_t get_status_distiler_control_handler(httpd_req_t *req);
+
+esp_err_t get_last_index_statistic_handler(httpd_req_t *req);
 //******************************************************************************
 // Function
 //******************************************************************************
@@ -130,6 +123,12 @@ httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &tempsensor_get_rom_uri);
         httpd_register_uri_handler(server, &tempsensor_rom_cube_uri);
         httpd_register_uri_handler(server, &tempsensor_rom_column_uri);
+
+        // Регистрация URI обработчиков для работы со статистикой
+        httpd_uri_t get_statistic_last_index_uri = { .uri="/api/statistic/lock", .method=HTTP_GET, .handler=lock_statistic_buffer_handler };
+        httpd_uri_t get_statistic_last_index_uri = { .uri="/api/statistic/prams", .method=HTTP_GET, .handler=get_statistic_parameters_handler };
+        httpd_uri_t get_statistic_last_index_uri = { .uri="/api/statistic/prams", .method=HTTP_GET, .handler=get_statistic_parameters_handler };
+        httpd_register_uri_handler(server, &get_statistic_last_index_uri);
 
         // Регистрация URI обработчика для получения статуса управления дистиллятором
         httpd_uri_t distiller_status_uri = { .uri="/api/distiller/status", .method=HTTP_GET, .handler=get_status_distiler_control_handler };
@@ -537,6 +536,90 @@ esp_err_t get_status_distiler_control_handler(httpd_req_t *req)
     snprintf(buf, sizeof(buf), "\"temperature_radiator\": %.2f", status.temperature_radiator);
     httpd_resp_sendstr_chunk(req, buf);
 
+    httpd_resp_sendstr_chunk(req, "}");
+    httpd_resp_sendstr_chunk(req, NULL);
+
+    return ESP_OK;
+}
+
+//------------------------------------------------------------------------------
+// Statistic Handlers
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+esp_err_t get_last_index_statistic_handler(httpd_req_t *req)
+{
+    dc_status_t status;
+    char buf[128];
+
+    size_t data = psram_statistic_get_latest_index();
+    snprintf(buf, sizeof(buf), "\"statistic_last_index\": %d", data);
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, buf);
+
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t get_status_distiler_control_handler(httpd_req_t *req)
+{
+    dc_status_t status;
+    char buf[128];
+    char query[128] = {0};
+    char str_req_last_index[10] = {0};
+    size_t req_last_index = 0;
+    size_t last_index = 0;
+    statistic_t statistic;
+    bool first_item = true;
+
+    // Читаем строку вида "last_index=222"
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Bad query");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "Statistic query: %s", query);
+
+    // Извлекаем last_index
+    if (httpd_query_key_value(query, "last_index", str_req_last_index, sizeof(str_req_last_index)) != ESP_OK) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing last_index");
+        return ESP_FAIL;
+    }
+    req_last_index = strtoul(str_req_last_index, NULL, 10);
+
+    if(req_last_index < psram_statistic_get_first_index())
+        req_last_index = psram_statistic_get_first_index();
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr_chunk(req, "{");
+
+    last_index = psram_statistic_get_latest_index();
+
+    snprintf(buf, sizeof(buf), "\"last_index\": %zu, ", last_index + 1);
+    httpd_resp_sendstr_chunk(req, buf);
+
+    httpd_resp_sendstr_chunk(req, "\"data\": ["); //data
+
+    while (req_last_index < last_index)
+    {
+        if(psram_statistic_read_by_global_index(req_last_index, &statistic))
+        {
+            if(!first_item)
+                httpd_resp_sendstr_chunk(req, ", ");
+
+            snprintf(buf, sizeof(buf), "{\"heater\": %d, \"column\": %d, \"kube\": %d, \"time\": %d}", statistic.heater, statistic.temperature_column, statistic.temperature_kube, statistic.time);
+            httpd_resp_sendstr_chunk(req, buf);
+            first_item = false; // дальше все элементы уже не первые
+            req_last_index++; 
+        }
+        else
+        {
+            req_last_index++;
+        }
+    }
+
+    httpd_resp_sendstr_chunk(req, "]"); //data
     httpd_resp_sendstr_chunk(req, "}");
     httpd_resp_sendstr_chunk(req, NULL);
 
