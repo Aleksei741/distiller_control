@@ -126,6 +126,12 @@ function updateLEDIndicator(status)
 
 //==========================================================================
 // Статистика
+
+// Глобальные переменные для графика
+let statisticData = [];       // массив полученных элементов
+let lastReceivedIndex = 0;    // индекс последнего элемента на клиенте
+let updatingStatistic = false; // флаг, что обновление идет
+
 // Инициализация графика
 const ctx = document.getElementById('chart').getContext('2d');
 const chart = new Chart(ctx, {
@@ -137,19 +143,25 @@ const chart = new Chart(ctx, {
                 label: 'Температура куба',
                 borderColor: 'red',
                 fill: false,
-                data: []
+                data: [],
+                pointHoverRadius: 2,
+                pointRadius: 0,
             },
             {
                 label: 'Температура колонны',
                 borderColor: 'blue',
                 fill: false,
-                data: []
+                data: [],
+                pointHoverRadius: 2,
+                pointRadius: 0,
             },
             {
                 label: 'Мощность ТЭНа',
                 borderColor: 'green',
                 fill: false,
-                data: []
+                data: [],
+                pointHoverRadius: 2,
+                pointRadius: 0,
             }
         ]
     },
@@ -163,30 +175,240 @@ const chart = new Chart(ctx, {
     }
 });
 
-// Периодическое обновление данных
-/*setInterval(() => {
-    fetch('/api/status')
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('temp-cube').innerText = data.tempCube;
-            document.getElementById('temp-column').innerText = data.tempColumn;
-            document.getElementById('ten-power').innerText = data.tenPower;
+function formatTimeFromMs(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
 
-            const time = new Date().toLocaleTimeString();
-            chart.data.labels.push(time);
-            chart.data.datasets[0].data.push(data.tempCube);
-            chart.data.datasets[1].data.push(data.tempColumn);
-            chart.data.datasets[2].data.push(data.tenPower);
+    // Добавляем ведущие нули
+    const hStr = hours.toString().padStart(2, '0');
+    const mStr = minutes.toString().padStart(2, '0');
+    const sStr = seconds.toString().padStart(2, '0');
 
-            // Ограничим длину графика
-            if(chart.data.labels.length > 50){
-                chart.data.labels.shift();
-                chart.data.datasets.forEach(ds => ds.data.shift());
-            }
+    return `${hStr}:${mStr}:${sStr}`;
+}
 
-            chart.update();
-        });
-}, 1000);*/
+function appendStatisticToChart(item) 
+{
+    // Преобразуем timestamp в читаемое время
+    const time = formatTimeFromMs(item.time);
+    
+    // console.log(`Заносим в график time ${time} kube ${item.kube} column ${item.column} heater ${item.heater}`);
+
+    // Добавляем метку времени
+    chart.data.labels.push(time);
+
+    // Добавляем значения в datasets
+    chart.data.datasets[0].data.push(item.kube);      // Температура куба
+    chart.data.datasets[1].data.push(item.column);    // Температура колонны
+    chart.data.datasets[2].data.push(item.heater);    // Мощность ТЭНа
+
+    // Ограничим длину графика (например, последние 300 точек)
+    if (chart.data.labels.length > 300) {
+        chart.data.labels.shift();
+        chart.data.datasets.forEach(ds => ds.data.shift());
+    }
+
+    // Обновляем график только если панель видима
+    const panel = document.getElementById('statistic-section');
+    if (panel && panel.style.display !== 'none') {
+        chart.update();
+    }
+}
+
+async function lockStatisticBuffer() 
+{
+    try 
+    {
+        console.log("Отправка запроса: /api/statistic/lock");
+        const resp = await fetch('/api/statistic/lock');
+        console.log("Статус ответа:", resp.status, resp.statusText, "ok =", resp.ok);
+        return resp.ok;
+    }
+    catch (e) 
+    {
+        console.error("Ошибка при запросе /api/statistic/lock:", e);
+        return false;
+    }
+}
+
+async function unlockStatisticBuffer() 
+{
+    try 
+    {
+        console.log("Отправка запроса: /api/statistic/unlock");
+
+        const resp = await fetch('/api/statistic/unlock');
+
+        console.log(
+            "Статус ответа:",
+            resp.status,
+            resp.statusText,
+            "ok =",
+            resp.ok
+        );
+
+        return resp.ok;
+    }
+    catch (e) 
+    {
+        console.error("Ошибка при запросе /api/statistic/unlock:", e);
+        return false;
+    }
+}
+
+/**
+ * Получить статус статистического буфера
+ * @returns {Promise<{first_index: number, latest_index: number, size_available_data: number} | false>}
+ */
+async function getStatisticBufferStatus() 
+{
+    try 
+    {
+        console.log("Запрос статуса буфера: /api/statistic/status");
+        const resp = await fetch('/api/statistic/status');
+
+        if (!resp.ok) return false;
+
+        const json = await resp.json();
+
+        // читаем нужные поля
+        const first_index = Number(json.firtst_index ?? json.first_index);
+        const latest_index = Number(json.latest_index);
+        const size_available_data = Number(json.size_available_data);
+
+        if (isNaN(first_index) || isNaN(latest_index) || isNaN(size_available_data)) 
+        {
+            console.warn("Некорректные данные в ответе:", json);
+            return false;
+        }
+
+        console.log("/api/statistic/status: ", json);
+        return { first_index, latest_index, size_available_data };
+    } 
+    catch (e) 
+    {
+        console.error("Ошибка при запросе /api/statistic/status:", e);
+        return false;
+    }
+}
+
+/**
+ * Получить статистику с ESP32 в бинарном формате
+ * @param {number} first_index - первый индекс (включительно)
+ * @param {number} latest_index - последний индекс (не включительно)
+ * @returns {Promise<Array<Object>|false>} массив объектов { time, heater, column, kube } или false при ошибке
+ */
+async function getStatisticData(first_index, latest_index) 
+{
+    try 
+    {
+        const url = `/api/statistic/?first_index=${first_index}&latest_index=${latest_index}`;
+        console.log("Запрос бинарной статистики:", url);
+
+        const resp = await fetch(url);
+        console.log("Статус ответа:", resp.status);
+
+        if (!resp.ok) 
+        {
+            console.error("HTTP ошибка:", resp.status, resp.statusText);
+            return false;
+        }
+
+        const arrayBuffer = await resp.arrayBuffer();
+        const byteLength = arrayBuffer.byteLength; // ← КЛЮЧЕВАЯ СТРОКА
+
+        if (byteLength % 13 !== 0) 
+        {
+            console.error("Некорректная длина данных: не кратна 13 байтам", byteLength);
+            return false;
+        }
+
+        const dataView = new DataView(arrayBuffer);
+        const count = byteLength / 13;
+        const result = [];
+
+        for (let i = 0; i < count; i++) 
+        {
+            const offset = i * 13;
+
+            const time = dataView.getUint32(offset + 0, true);
+            const heater = dataView.getUint8(offset + 4);
+            const column = dataView.getFloat32(offset + 5, true);
+            const kube = dataView.getFloat32(offset + 9, true);
+
+            // И сохраняйте в результат
+            result.push({ time, heater, column, kube });
+        }
+
+        console.log(`Получено ${result.length} точек`);
+        return result;
+    } 
+    catch (e) 
+    {
+        console.error("Ошибка при запросе бинарной статистики:", e);
+        return false;
+    }
+}
+
+async function updateStatisticSection() 
+{
+    if (updatingStatistic) return; // предыдущий вызов не завершён
+    updatingStatistic = true;
+
+    const panel = document.getElementById('statistic-section');
+    if (!panel || panel.offsetParent === null) 
+    {
+        updatingStatistic = false;
+        return;
+    }
+
+    // Блокируем
+    locked = await lockStatisticBuffer();
+        if (!locked) return;
+
+    // Получаем текущий статус буфера
+    const status = await getStatisticBufferStatus();
+    if (!status) 
+    {
+        await unlockStatisticBuffer();
+        locked = false;
+        return;
+    }
+    const { first_index, latest_index } = status;
+
+    if(lastReceivedIndex < first_index)
+        lastReceivedIndex = first_index;
+
+    if (lastReceivedIndex < latest_index)
+    {
+        // Получаем все доступные данные
+        const allData = await getStatisticData(lastReceivedIndex, latest_index);
+        lastReceivedIndex = latest_index;
+
+        if (allData && allData.length > 0) 
+        {
+            statisticData.push(...allData);
+            lastReceivedIndex = latest_index;
+            allData.forEach(item => appendStatisticToChart(item));
+        }
+    }
+    else 
+    {
+        await unlockStatisticBuffer();
+        locked = false;
+    }
+
+    updatingStatistic = false;
+    
+}
+
+document.addEventListener('DOMContentLoaded', function() 
+{
+    updateStatisticSection();    
+    setInterval(updateStatisticSection, 3000);
+});
 
 //==========================================================================
 // Функция для переключения между секциями

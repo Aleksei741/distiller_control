@@ -10,6 +10,8 @@
 #include <webServer.h>
 #include <led.h>
 #include <Measure220V.h>
+#include <statistic.h>
+#include <statistic_sampler.h>
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -58,6 +60,7 @@ void init_distiller_control()
     init_webserver();
     start_webserver();
     Measure220V_init();
+    psram_statistic_init();
     
     g_mutex = xSemaphoreCreateMutex();
     if (g_mutex == NULL) {
@@ -73,8 +76,6 @@ void distiller_control_task(void *arg)
     dc_status_t status;
     dc_mode_e mode = DC_MANUAL_CONTROL;
 
-    
-
     while (1)
     {
         get_column_temperature(&status.temperature_column);
@@ -86,19 +87,9 @@ void distiller_control_task(void *arg)
             memcpy(&dc_status, &status, sizeof(dc_status_t));
             xSemaphoreGive(g_mutex);
         }
-
-        // Получаем время в тиках RTOS
-    TickType_t ticks = xTaskGetTickCount();
-    // Переводим в миллисекунды
-    uint32_t ms = ticks * portTICK_PERIOD_MS;
-
-        ESP_LOGI(TAG, "Time %u ms - Column Temp: %.2f C, Kube Temp: %.2f C, Radiator Temp: %.2f C", 
-            ms,
-            status.temperature_column, 
-            status.temperature_kube, 
-            status.temperature_radiator);
-
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        
+        statistic_sampler(status.temperature_column, status.temperature_kube, status.temperature_radiator);
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 

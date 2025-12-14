@@ -66,7 +66,10 @@ esp_err_t tempsensor_set_rom_column_handler(httpd_req_t *req);
 
 esp_err_t get_status_distiler_control_handler(httpd_req_t *req);
 
-esp_err_t get_last_index_statistic_handler(httpd_req_t *req);
+esp_err_t lock_statistic_buffer_handler(httpd_req_t *req);
+esp_err_t unlock_statistic_buffer_handler(httpd_req_t *req);
+esp_err_t get_status_statistic_buffer_handler(httpd_req_t *req);
+esp_err_t get_statistic_handler(httpd_req_t *req);
 //******************************************************************************
 // Function
 //******************************************************************************
@@ -80,7 +83,7 @@ httpd_handle_t start_webserver(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server = NULL;
-    config.max_uri_handlers = 16; // Увеличение количества URI обработчиков
+    config.max_uri_handlers = 32; // Увеличение количества URI обработчиков
 
     if (httpd_start(&server, &config) == ESP_OK) 
     {
@@ -125,10 +128,14 @@ httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &tempsensor_rom_column_uri);
 
         // Регистрация URI обработчиков для работы со статистикой
-        httpd_uri_t get_statistic_last_index_uri = { .uri="/api/statistic/lock", .method=HTTP_GET, .handler=lock_statistic_buffer_handler };
-        httpd_uri_t get_statistic_last_index_uri = { .uri="/api/statistic/prams", .method=HTTP_GET, .handler=get_statistic_parameters_handler };
-        httpd_uri_t get_statistic_last_index_uri = { .uri="/api/statistic/prams", .method=HTTP_GET, .handler=get_statistic_parameters_handler };
-        httpd_register_uri_handler(server, &get_statistic_last_index_uri);
+        httpd_uri_t lock_statistic_buffer_uri = { .uri="/api/statistic/lock", .method=HTTP_GET, .handler=lock_statistic_buffer_handler };
+        httpd_uri_t unlock_statistic_buffer_uri = { .uri="/api/statistic/unlock", .method=HTTP_GET, .handler=unlock_statistic_buffer_handler };
+        httpd_uri_t get_status_statistic_buffer_uri = { .uri="/api/statistic/status", .method=HTTP_GET, .handler=get_status_statistic_buffer_handler };
+        httpd_uri_t get_statistic_uri = { .uri="/api/statistic/", .method=HTTP_GET, .handler=get_statistic_handler };
+        httpd_register_uri_handler(server, &lock_statistic_buffer_uri);
+        httpd_register_uri_handler(server, &unlock_statistic_buffer_uri);
+        httpd_register_uri_handler(server, &get_status_statistic_buffer_uri);
+        httpd_register_uri_handler(server, &get_statistic_uri);
 
         // Регистрация URI обработчика для получения статуса управления дистиллятором
         httpd_uri_t distiller_status_uri = { .uri="/api/distiller/status", .method=HTTP_GET, .handler=get_status_distiler_control_handler };
@@ -546,84 +553,135 @@ esp_err_t get_status_distiler_control_handler(httpd_req_t *req)
 // Statistic Handlers
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-esp_err_t get_last_index_statistic_handler(httpd_req_t *req)
+esp_err_t lock_statistic_buffer_handler(httpd_req_t *req)
 {
-    dc_status_t status;
-    char buf[128];
-
-    size_t data = psram_statistic_get_latest_index();
-    snprintf(buf, sizeof(buf), "\"statistic_last_index\": %d", data);
-
+    psram_statistic_lock_write();
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_sendstr(req, buf);
+    httpd_resp_sendstr(req, "{\"lock_statistic\": \"true\"}");
 
     return ESP_OK;
 }
 //------------------------------------------------------------------------------
-esp_err_t get_status_distiler_control_handler(httpd_req_t *req)
+esp_err_t unlock_statistic_buffer_handler(httpd_req_t *req)
 {
-    dc_status_t status;
+    psram_statistic_unlock_write();
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, "{\"lock_statistic\": \"false\"}");
+
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t get_status_statistic_buffer_handler(httpd_req_t *req)
+{
     char buf[128];
-    char query[128] = {0};
-    char str_req_last_index[10] = {0};
-    size_t req_last_index = 0;
-    size_t last_index = 0;
-    statistic_t statistic;
-    bool first_item = true;
-
-    // Читаем строку вида "last_index=222"
-    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) 
-    {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Bad query");
-        return ESP_FAIL;
-    }
-
-    ESP_LOGI(TAG, "Statistic query: %s", query);
-
-    // Извлекаем last_index
-    if (httpd_query_key_value(query, "last_index", str_req_last_index, sizeof(str_req_last_index)) != ESP_OK) 
-    {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing last_index");
-        return ESP_FAIL;
-    }
-    req_last_index = strtoul(str_req_last_index, NULL, 10);
-
-    if(req_last_index < psram_statistic_get_first_index())
-        req_last_index = psram_statistic_get_first_index();
+    size_t firtst_index = psram_statistic_get_first_index();
+    size_t latest_index = psram_statistic_get_latest_index();
+    size_t size_data = psram_statistic_get_count();
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr_chunk(req, "{");
 
-    last_index = psram_statistic_get_latest_index();
-
-    snprintf(buf, sizeof(buf), "\"last_index\": %zu, ", last_index + 1);
+    // Column Temperature
+    snprintf(buf, sizeof(buf), "\"firtst_index\": %zu", firtst_index);
     httpd_resp_sendstr_chunk(req, buf);
 
-    httpd_resp_sendstr_chunk(req, "\"data\": ["); //data
+    httpd_resp_sendstr_chunk(req, ", ");
 
-    while (req_last_index < last_index)
-    {
-        if(psram_statistic_read_by_global_index(req_last_index, &statistic))
-        {
-            if(!first_item)
-                httpd_resp_sendstr_chunk(req, ", ");
+    // Kube Temperature
+    snprintf(buf, sizeof(buf), "\"latest_index\": %zu", latest_index);
+    httpd_resp_sendstr_chunk(req, buf);
 
-            snprintf(buf, sizeof(buf), "{\"heater\": %d, \"column\": %d, \"kube\": %d, \"time\": %d}", statistic.heater, statistic.temperature_column, statistic.temperature_kube, statistic.time);
-            httpd_resp_sendstr_chunk(req, buf);
-            first_item = false; // дальше все элементы уже не первые
-            req_last_index++; 
-        }
-        else
-        {
-            req_last_index++;
-        }
-    }
+    httpd_resp_sendstr_chunk(req, ", ");
 
-    httpd_resp_sendstr_chunk(req, "]"); //data
+    // Radiator Temperature
+    snprintf(buf, sizeof(buf), "\"size_available_data\": %zu", size_data);
+    httpd_resp_sendstr_chunk(req, buf);
+
     httpd_resp_sendstr_chunk(req, "}");
     httpd_resp_sendstr_chunk(req, NULL);
 
     return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t get_statistic_handler(httpd_req_t *req)
+{
+    char query[128] = {0};
+    char str_index[32] = {0};
+    size_t first_index = 0;
+    size_t latest_index = 0;
+    statistic_t statistic;
+    esp_err_t result = ESP_OK;
+
+    // Прочитать query
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Bad query");
+        result = ESP_FAIL;
+        goto finish;
+    }
+
+    ESP_LOGI(TAG, "Statistic query: %s", query);
+
+    // Извлечь first_index
+    if (httpd_query_key_value(query, "first_index", str_index, sizeof(str_index)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing firts_index");
+        result = ESP_FAIL;
+        goto finish;
+    }
+    first_index = strtoul(str_index, NULL, 10);
+
+    // Извлечь latest_index
+    if (httpd_query_key_value(query, "latest_index", str_index, sizeof(str_index)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing latest_index");
+        result = ESP_FAIL;
+        goto finish;
+    }
+    latest_index = strtoul(str_index, NULL, 10);
+
+    // Валидируем диапазон: если first_index >= latest_index — нечего отправлять
+    if (first_index >= latest_index) 
+    {
+        httpd_resp_set_type(req, "application/x-statistic-binary");
+        httpd_resp_send_chunk(req, NULL, 0); // Правильное завершение пустого chunked-ответа
+        goto finish;
+    }
+
+    // Начинаем ответ chunked
+    if (httpd_resp_set_type(req, "application/x-statistic-binary") != ESP_OK) { result = ESP_FAIL; goto finish; }
+
+    // Итерация по индексам и отправка. При любой ошибке отправки — прерываем цикл.
+    for (size_t idx = first_index; idx < latest_index; ++idx) 
+    {
+        bool ok = psram_statistic_read(idx, &statistic);
+        if (!ok) continue;   // элемент отсутствует (слишком стар или недоступен) — просто пропускаем
+
+        uint8_t packet[13];
+
+        // time
+        memcpy(&packet[0], &statistic.time, 4);
+
+        // heater (uint16_t)
+        memcpy(&packet[4], &statistic.heater, 1);
+
+        // floats — копируем как есть (ESP32 little-endian, как и ПК)
+        memcpy(&packet[5], &statistic.temperature_column, 4);
+        memcpy(&packet[9], &statistic.temperature_kube, 4);
+
+        // Отправляем 13 байт
+        if (httpd_resp_send_chunk(req, (const char*)packet, 13) != ESP_OK) 
+        {
+            ESP_LOGW(TAG, "Client disconnected during binary send");
+            result = ESP_FAIL;
+            goto finish;
+        }
+    }
+
+    if (httpd_resp_send_chunk(req, NULL, 0) != ESP_OK) { result = ESP_FAIL; goto finish; }
+
+finish:
+    // ГАРАНТИРОВАННО вызываем unlock один раз (если это требование протокола)
+    psram_statistic_unlock_write();
+
+    return result;
 }
 
 

@@ -2,7 +2,9 @@
 //******************************************************************************
 // Секция include
 //******************************************************************************
-
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 //******************************************************************************
 // Секция определения констант
 //******************************************************************************
@@ -41,7 +43,7 @@ size_t psram_statistic_get_count();
 
 void psram_statistic_push(statistic_t *elem);
 
-bool psram_statistic_read_by_global_index(size_t global_index, statistic_t *out);
+bool psram_statistic_read(size_t global_index, statistic_t *out);
 size_t psram_statistic_read_range_by_global_index(size_t start_global, size_t end_global, statistic_t *out_array, size_t max_count);
 psram_stat_status_t psram_stat_check_global_index(size_t client_index, size_t *adjusted_index);
 

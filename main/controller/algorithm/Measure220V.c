@@ -37,8 +37,9 @@ typedef enum {
 } phase_t;
 
 typedef struct {
-    mass[]
-} voltage_t;
+    uint32_t cnt;
+    double summ;
+} ESR_t;
 //******************************************************************************
 // Variables
 //******************************************************************************
@@ -55,13 +56,14 @@ static TaskHandle_t hTask = NULL;
 static SemaphoreHandle_t g_mutex = NULL;
 static SemaphoreHandle_t zero_calibrated_semaphore = NULL;
 
+ESR_t esr = {0};
+
 static double zero_voltage_220V = 0;
 static bool fSetZero220V = false;
 
 static bool fCalibrate = false;
 static double calibrate_voltage = 0;
 static double calibrate_esr = 0;
-static double voltage = 0;
 static double voltage = 0;
 //------------------------------------------------------------------------------
 // Local Class
@@ -200,11 +202,12 @@ void Measure220V_init(void)
 //------------------------------------------------------------------------------
 void voltage_220V_calculate_task(void *arg)
 {
-    bool flag_zero, flag_calib;
+    bool flag_zero = false;
+    bool flag_calib = false;
     uint32_t ticks = pdTICKS_TO_MS(xTaskGetTickCount());
     uint32_t last_ticks = pdTICKS_TO_MS(xTaskGetTickCount());
 
-    printf("Uptime: %u ms\n", ms);
+    printf("Uptime: %lu ms\n", ticks);
     while(1)
     {
         uint32_t notification = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(20));
@@ -294,12 +297,12 @@ void voltage_220V_calculate_task(void *arg)
                 }
                 ESP_LOGI(TAG, "voltage 220V: %f", voltage);
             }
-
+        }
         last_ticks = ticks;
     }
 }
 //------------------------------------------------------------------------------
-bool zero_calibrate_220V(bool start=false)
+bool zero_calibrate_220V(bool start)
 {
     bool ret;
 
@@ -311,7 +314,7 @@ bool zero_calibrate_220V(bool start=false)
     return ret;
 }
 //------------------------------------------------------------------------------
-bool calibrate_220V(bool start=false)
+bool calibrate_220V(bool start)
 {
     bool ret;
 
@@ -323,7 +326,7 @@ bool calibrate_220V(bool start=false)
     return ret;
 }
 //------------------------------------------------------------------------------
-float get_voltage_220V(bool start=false)
+float get_voltage_220V(bool start)
 {
     float result;
 

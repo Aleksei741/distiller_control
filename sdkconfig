@@ -1549,7 +1549,6 @@ CONFIG_PM_SLP_IRAM_OPT=y
 #
 # ESP PSRAM
 #
-# default:
 # CONFIG_SPIRAM is not set
 # end of ESP PSRAM
 

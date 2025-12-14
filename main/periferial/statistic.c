@@ -9,7 +9,7 @@
 //******************************************************************************
 // Constants
 //******************************************************************************
-#define SIZE_RESERVE_BUFFER 10
+#define SIZE_RESERVE_BUFFER 20
 //******************************************************************************
 // Type
 //******************************************************************************
@@ -37,7 +37,7 @@ static psram_ring_t param_ring;
 
 static statistic_t reserve_buffer[SIZE_RESERVE_BUFFER] = {0};
 static size_t reserve_buffer_count = 0;
-static bool block_write = false;
+static uint8_t block_write = 0;
 //******************************************************************************
 // Function prototype
 //******************************************************************************
@@ -48,11 +48,16 @@ inline void psram_statistic_push_(statistic_t *elem);
 // Инициализация буфера в PSRAM (выделяем максимально возможное место)
 bool psram_statistic_init() 
 {
-    size_t free_psram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    const size_t reserve_bytes = 50 * 1024;
+    //size_t free_sram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    //size_t free_sram = heap_caps_get_free_size(MALLOC_CAP_8BIT);
+    size_t free_sram = reserve_bytes;
+
+    //ESP_LOGI(TAG, "MALLOC: capacity = %d elements", (int)free_psram);
 
     // Выравнивание под sizeof(statistic_t)
     size_t element_size = sizeof(statistic_t);
-    size_t count = free_psram / element_size;
+    size_t count = free_sram / element_size;
 
     if (count == 0) {
         ESP_LOGE(TAG, "Not enough PSRAM to allocate even one element!");
@@ -60,9 +65,10 @@ bool psram_statistic_init()
     }
 
     // Выделяем память
-    param_ring.buffer = (statistic_t *)heap_caps_malloc(count * element_size, MALLOC_CAP_SPIRAM);
+    //param_ring.buffer = (statistic_t *)heap_caps_malloc(count * element_size, MALLOC_CAP_SPIRAM);
+    param_ring.buffer = (statistic_t *)malloc(count * element_size);
     if (!param_ring.buffer) {
-        ESP_LOGE(TAG, "Failed to allocate PSRAM!");
+        ESP_LOGE(TAG, "Failed to allocate SRAM!");
         return false;
     }
 
@@ -105,16 +111,31 @@ void psram_statistic_lock_write()
 {
     if (xSemaphoreTake(psram_mutex, portMAX_DELAY) == pdTRUE) 
     {
-        block_write = true;
+        block_write++;
+        //ESP_LOGI(TAG, "psram_statistic_lock_write: block_write = %d", (int)block_write);
         xSemaphoreGive(psram_mutex);
     }
 }
 //------------------------------------------------------------------------------
 void psram_statistic_unlock_write()
 {
+    uint8_t cnt;
     if (xSemaphoreTake(psram_mutex, portMAX_DELAY) == pdTRUE) 
     {
-        block_write = false;
+        block_write--;
+
+        //ESP_LOGI(TAG, "psram_statistic_unlock_write: block_write = %d", (int)block_write);
+
+        if(!block_write)
+        {
+            for(cnt = 0; cnt < reserve_buffer_count; cnt++)
+            {
+                psram_statistic_push_(&reserve_buffer[cnt]);
+            }
+
+            reserve_buffer_count = 0;
+        }
+
         xSemaphoreGive(psram_mutex);
     }
 }
@@ -168,6 +189,7 @@ size_t psram_statistic_get_count()
 // Добавление нового элемента (циклическое перезаписывание)
 void psram_statistic_push(statistic_t *elem) 
 {
+    uint8_t cnt;
     if (!param_ring.buffer || !elem || !psram_mutex) return;
     
     if (xSemaphoreTake(psram_mutex, portMAX_DELAY) == pdTRUE) 
@@ -176,7 +198,7 @@ void psram_statistic_push(statistic_t *elem)
         {
             if(reserve_buffer_count >= SIZE_RESERVE_BUFFER)
             {
-                block_write = false;
+                block_write = 0;
 
                 for(cnt = 0; cnt < SIZE_RESERVE_BUFFER; cnt++)
                 {
@@ -300,7 +322,7 @@ psram_stat_status_t psram_stat_check_global_index(size_t client_index, size_t *a
 //------------------------------------------------------------------------------
 // local functions
 //------------------------------------------------------------------------------
-inline void psram_statistic_push_(statistic_t *elem) 
+void psram_statistic_push_(statistic_t *elem) 
 {    
     param_ring.buffer[param_ring.head] = *elem; 
     param_ring.head = (param_ring.head + 1) % param_ring.capacity; 

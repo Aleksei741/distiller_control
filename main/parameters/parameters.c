@@ -343,7 +343,7 @@ esp_err_t load_calibration_220V(meas_220V_settings_t *calib)
         return err;
     }
 
-    ESP_LOGI("load_calibration_220V: zero_lvl: %d, ref_voltage: %f, ref_ESR: %f", 
+    ESP_LOGI(TAG, "load_calibration_220V: zero_lvl: %d, ref_voltage: %f, ref_ESR: %f", 
         calib->zero_lvl, calib->ref_voltage, calib->ref_ESR);
 
     nvs_close(h);
@@ -370,7 +370,7 @@ esp_err_t save_calibration_220V(const meas_220V_settings_t *calib)
     err = nvs_commit(h);
     nvs_close(h);
     
-    ESP_LOGI("save_calibration_220V: zero_lvl: %d, ref_voltage: %f, ref_ESR: %f", 
+    ESP_LOGI(TAG, "save_calibration_220V: zero_lvl: %d, ref_voltage: %f, ref_ESR: %f", 
         calib->zero_lvl, calib->ref_voltage, calib->ref_ESR);
 
     return err;

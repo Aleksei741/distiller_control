@@ -8,10 +8,12 @@ set(SOURCES
     wifiServer/captive_dns.c
     periferial/led.c
     periferial/temperature_sensor.c
+    periferial/statistic.c
     periferial/drivers/ds18b20.c
-    controller/algorithm/PID.c
     periferial/adc_drv.c
+    controller/algorithm/PID.c    
     controller/algorithm/Measure220V.c
+    controller/algorithm/statistic_sampler.c
 )
 
 set(INCLUDES
