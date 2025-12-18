@@ -6,6 +6,11 @@ set(SOURCES
     wifiServer/webServer.c
     wifiServer/mDNS_.c
     wifiServer/captive_dns.c
+    wifiServer/handlers/distiler_control_handler.c
+    wifiServer/handlers/LED_handler.c
+    wifiServer/handlers/statistic_handler.c
+    wifiServer/handlers/tempsensor_handler.c
+    wifiServer/handlers/wifi_handler.c
     periferial/led.c
     periferial/temperature_sensor.c
     periferial/statistic.c
@@ -21,6 +26,7 @@ set(INCLUDES
     controller
     controller/algorithm
     wifiServer
+    wifiServer/handlers
     parameters
     periferial
     periferial/drivers
