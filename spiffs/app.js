@@ -11,38 +11,60 @@ animateVapor();
 
 //==========================================================================
 // Режим управления
-document.querySelectorAll('input[name="mode"]').forEach(el => {
-    el.addEventListener('change', () => {
-        if (el.value === 'manual') {
+let isUserInput = true;
+
+//Переключатель режима управления
+document.querySelectorAll('input[name="mode"]').forEach(el => 
+{
+    el.addEventListener('change', () =>
+    {
+        if (el.value === 'manual') 
+        {
             document.getElementById('manual-control').style.display = 'block';
             document.getElementById('auto-control').style.display = 'none';
-        } else {
+        } 
+        else 
+        {
             document.getElementById('manual-control').style.display = 'none';
             document.getElementById('auto-control').style.display = 'block';
         }
     });
 });
 
-document.getElementById('manual-power').addEventListener('input', (e) => {
+// Обработчик: вызывается при движении ползунка
+document.getElementById('manual-power').addEventListener('input', (e) => 
+{
     document.getElementById('manual-power-value').innerText = e.target.value + '%';
+    // Вызываем только если изменение от пользователя
+    if (isUserInput) 
+    {
+        setManualPower();
+    }
 });
-
-
-
 
 // Управление ТЭНом
 function setManualPower() {
     const power = document.getElementById('manual-power').value;
-    fetch(`/api/ten/manual?power=${power}`)
+    fetch(`/api/distiller/ten?power=${power}`)
         .then(res => res.json())
         .then(alert);
 }
 
-function setAutoStage() {
+function setAutoStage() 
+{
     const stage = document.getElementById('auto-stage').value;
-    fetch(`/api/ten/auto?stage=${stage}`)
+    fetch(`/api/distiller/auto?stage=${stage}`)
         .then(res => res.json())
         .then(alert);
+}
+
+// Функция для программной установки значения БЕЗ вызова setManualPower
+function setManualPowerGUI(value) 
+{
+    isUserInput = false; // говорим: это не пользователь
+    document.getElementById('manual-power').value = value;
+    document.getElementById('manual-power-value').innerText = value + '%';
+    isUserInput = true;  // восстанавливаем флаг
 }
 
 //==========================================================================
