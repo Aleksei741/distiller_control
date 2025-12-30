@@ -12,7 +12,8 @@
 //******************************************************************************
 // Секция определения типов
 //******************************************************************************
-typedef struct {
+typedef struct 
+{
     void (*on_conv_done)(uint16_t data); ///< Callback function pointer for conversion done event
     adc_channel_t channel;              ///< ADC channel for which the callback is registered
 } adc_channel_config_t;

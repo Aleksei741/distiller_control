@@ -54,7 +54,6 @@ static char *TAG = "[voltage_220V]";
 
 static TaskHandle_t hTask = NULL;
 static SemaphoreHandle_t g_mutex = NULL;
-static SemaphoreHandle_t zero_calibrated_semaphore = NULL;
 
 ESR_t esr = {0};
 
