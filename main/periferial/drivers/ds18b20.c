@@ -65,16 +65,22 @@ bool ds18b20_read_rom(ds18b20_t *ds18b20)
 {
     uint8_t data[9];
 
+    ESP_LOGI(TAG, "ds18b20_reset(ds18b20) pin[%d]", ds18b20->pin);
     if(!ds18b20_reset(ds18b20))
     {
         ESP_LOGW(TAG, "ds18b20_read_rom pin[%d] No presence pulse detected", ds18b20->pin);
         return false;
     }
 
+    ESP_LOGI(TAG, "ds18b20_write_byte(ds18b20, 0x33) pin[%d]", ds18b20->pin);
     ds18b20_write_byte(ds18b20, 0x33); // Read ROM command
 
     for (int i = 0; i < 8; i++)
         data[i] = ds18b20_read_byte(ds18b20);
+
+    ESP_LOGI(TAG, "ds18b20_read_byte(ds18b20): %02X %02X %02X %02X %02X %02X %02X %02X",
+                    data[0], data[1], data[2], data[3],
+                    data[4], data[5], data[6], data[7]);
 
     if(data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x00 &&
        data[4] == 0x00 && data[5] == 0x00 && data[6] == 0x00 && data[7] == 0x00)
@@ -83,11 +89,11 @@ bool ds18b20_read_rom(ds18b20_t *ds18b20)
         return false;
     }
      
-    uint8_t crc = ds18b20_crc8(ds18b20->rom, 7);
-    if (crc != ds18b20->rom[7]) 
+    uint8_t crc = ds18b20_crc8(data, 7);
+    if (crc != data[7]) 
     {
         ESP_LOGW(TAG, "ds18b20_read_rom CRC error pin[%d]: calc=%02X recv=%02X",
-                 ds18b20->pin, crc, ds18b20->rom[7]);
+                 ds18b20->pin, crc, data[7]);
         return false;
     }
 
