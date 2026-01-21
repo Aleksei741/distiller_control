@@ -12,6 +12,7 @@
 #include <Measure220V.h>
 #include <statistic.h>
 #include <statistic_sampler.h>
+#include <ten_ctrl.h>
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -53,14 +54,14 @@ void init_distiller_control()
 {
     ESP_LOGI(TAG, "Initializing distiller control...");
     
-    parameters_init();    
-    led_init();    
+    parameters_init();
     init_temperature_sensor();
     wifi_init();
     init_webserver();
     start_webserver();
     Measure220V_init();
     psram_statistic_init();
+    heater_init();
     
     g_mutex = xSemaphoreCreateMutex();
     if (g_mutex == NULL) {
@@ -75,6 +76,8 @@ void distiller_control_task(void *arg)
 {
     dc_status_t status;
     dc_mode_e mode = DC_MANUAL_CONTROL;
+    heater_set_power(50);
+    uint8_t heater = 0;
 
     while (1)
     {
@@ -89,7 +92,12 @@ void distiller_control_task(void *arg)
         }
         
         statistic_sampler(status.temperature_column, status.temperature_kube, status.temperature_radiator);
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        heater_set_power(heater);
+        if(heater < 100)
+            heater += 5;
+        else
+            heater = 0;
     }
 }
 

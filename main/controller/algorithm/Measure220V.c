@@ -57,8 +57,8 @@ static SemaphoreHandle_t g_mutex = NULL;
 
 ESR_t esr = {0};
 
-static double zero_voltage_220V = 0;
-static bool fSetZero220V = false;
+static volatile double zero_voltage_220V = 0;
+static volatile bool fSetZero220V = false;
 
 static bool fCalibrate = false;
 static double calibrate_voltage = 0;
@@ -80,12 +80,7 @@ static inline bool in_below(double val, double ref, double min_lvl);
 // Function
 //******************************************************************************
 static void voltage_done_cb(uint16_t data) 
-{ 
-    static status_phase_t status_phase = STATUS_PHASE_UNKNOW; 
-    static status_phase_t last_status_phase = STATUS_PHASE_UNKNOW; 
-    static phase_t phase = PHASE_UNKNOW;
-    static phase_t last_phase = PHASE_UNKNOW;
-    
+{     
     if (xSemaphoreTake(g_mutex, portMAX_DELAY)) 
     { 
         double val = (double)data;
@@ -97,77 +92,6 @@ static void voltage_done_cb(uint16_t data)
         {
             esr.summ += (val - zero_voltage_220V) * (val - zero_voltage_220V);
         }
-
-        if(in_range(val, zero_voltage_220V, HYST)) 
-            status_phase = STATUS_PHASE_IN_RANGE; 
-        else if(in_above(val, zero_voltage_220V, PHASE_K)) 
-            status_phase = STATUS_PHASE_IN_ABOVE; 
-        else if(in_below(val, zero_voltage_220V, PHASE_K)) 
-            status_phase = STATUS_PHASE_IN_BELOW; 
-        else 
-            status_phase = STATUS_PHASE_UNKNOW;
-            
-        if(status_phase != STATUS_PHASE_UNKNOW && 
-            last_status_phase != status_phase) 
-        { 
-            if(status_phase == STATUS_PHASE_IN_RANGE && 
-                (phase == PHASE_UNKNOW || phase == PHASE_IN_RANGE) && 
-                (last_phase == PHASE_UNKNOW || last_phase == PHASE_IN_RANGE)) 
-            { 
-                phase = PHASE_IN_RANGE; 
-            }
-            //Прямая последовательность
-            else if(status_phase == STATUS_PHASE_IN_ABOVE 
-                && last_phase == PHASE_IN_RANGE) 
-            {
-                phase = PHASE_IN_ABOVE; 
-            } 
-            else if(status_phase == STATUS_PHASE_IN_RANGE && 
-                last_phase == PHASE_IN_ABOVE) 
-            { 
-                phase = PHASE_IN_RANGE_AFTER_IN_ABOVE;
-            } 
-            else if(status_phase == STATUS_PHASE_IN_BELOW && 
-                last_phase == PHASE_IN_RANGE_AFTER_IN_ABOVE) 
-            { 
-                phase = PHASE_IN_BELOW; 
-            } 
-            else if(status_phase == STATUS_PHASE_IN_RANGE && 
-                last_phase == PHASE_IN_BELOW) 
-            { 
-                phase = PHASE_IN_RANGE_AFTER_IN_BELOW; 
-                xTaskNotifyGive(hTask); 
-            } 
-            //Обратная последовательность
-            else if(status_phase == STATUS_PHASE_IN_BELOW 
-                && last_phase == PHASE_IN_RANGE) 
-            {
-                phase = PHASE_IN_BELOW; 
-            } 
-            else if(status_phase == STATUS_PHASE_IN_RANGE && 
-                last_phase == PHASE_IN_BELOW) 
-            { 
-                phase = PHASE_IN_RANGE_AFTER_IN_BELOW;
-            } 
-            else if(status_phase == STATUS_PHASE_IN_ABOVE && 
-                last_phase == PHASE_IN_RANGE_AFTER_IN_BELOW) 
-            { 
-                phase = PHASE_IN_ABOVE; 
-            } 
-            else if(status_phase == STATUS_PHASE_IN_RANGE && 
-                last_phase == PHASE_IN_ABOVE) 
-            { 
-                phase = PHASE_IN_RANGE_AFTER_IN_ABOVE; 
-                xTaskNotifyGive(hTask); 
-            } 
-            else // последовательность нарушена
-            {  
-                phase = PHASE_UNKNOW; 
-            }
-
-            last_status_phase = status_phase; 
-            last_phase = phase; 
-        } 
         xSemaphoreGive(g_mutex); 
     } 
 }
@@ -190,6 +114,8 @@ void Measure220V_init(void)
         return;
     }
 
+    xTaskCreate(voltage_220V_calculate_task, "v220_task", 2048, NULL, 5, &hTask);
+
     adc_channel_config_t config_220V = {
         .on_conv_done = voltage_done_cb,
         .channel = ADC_CHANNEL_6 
@@ -206,10 +132,9 @@ void voltage_220V_calculate_task(void *arg)
     uint32_t ticks = pdTICKS_TO_MS(xTaskGetTickCount());
     uint32_t last_ticks = pdTICKS_TO_MS(xTaskGetTickCount());
 
-    printf("Uptime: %lu ms\n", ticks);
     while(1)
     {
-        uint32_t notification = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(20));
+        uint32_t notification = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(200));
         
         //---------------------------------------------------------------------
         //calibration zero
@@ -274,28 +199,15 @@ void voltage_220V_calculate_task(void *arg)
         //---------------------------------------------------------------------
         else
         {
-            ticks = pdTICKS_TO_MS(xTaskGetTickCount());
-            if (ticks - last_ticks > 15)
+            //ticks = pdTICKS_TO_MS(xTaskGetTickCount());            
+            if (xSemaphoreTake(g_mutex, portMAX_DELAY)) 
             {
-                if (xSemaphoreTake(g_mutex, portMAX_DELAY)) 
-                {
-                    voltage = (esr.summ / esr.cnt) * calibrate_voltage / calibrate_esr;
-                    esr.cnt = 0; 
-                    esr.summ = 0;
-                    xSemaphoreGive(g_mutex);                    
-                }
-                ESP_LOGI(TAG, "voltage 220V: %f", voltage);
+                voltage = (esr.summ / esr.cnt)/* * calibrate_voltage / calibrate_esr*/;
+                esr.cnt = 0; 
+                esr.summ = 0;
+                xSemaphoreGive(g_mutex);                    
             }
-            else
-            {
-                if (xSemaphoreTake(g_mutex, portMAX_DELAY)) 
-                {
-                    esr.cnt = 0; 
-                    esr.summ = 0;
-                    xSemaphoreGive(g_mutex); 
-                }
-                ESP_LOGI(TAG, "voltage 220V: %f", voltage);
-            }
+            ESP_LOGI(TAG, "voltage 220V: %f", voltage);
         }
         last_ticks = ticks;
     }

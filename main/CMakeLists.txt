@@ -1,6 +1,9 @@
 set(SOURCES
     main.c
     controller/distiller_control.c
+    controller/algorithm/PID.c    
+    controller/algorithm/Measure220V.c
+    controller/algorithm/statistic_sampler.c
     parameters/parameters.c
     wifiServer/wifi_control.c
     wifiServer/webServer.c
@@ -21,10 +24,8 @@ set(SOURCES
     periferial/modbus/driver/modbus_rtu_coils.c
     periferial/modbus/driver/modbus_rtu_discrete_input.c
     periferial/modbus/driver/modbus_rtu_holding_registers.c
-    periferial/modbus/driver/modbus_rtu_input_registers.c
-    controller/algorithm/PID.c    
-    controller/algorithm/Measure220V.c
-    controller/algorithm/statistic_sampler.c
+    periferial/modbus/driver/modbus_rtu_input_registers.c    
+    periferial/ten_ctrl.c
 )
 
 set(INCLUDES
