@@ -119,7 +119,9 @@ httpd_handle_t start_webserver(void)
 
         // Регистрация URI обработчика для получения статуса управления дистиллятором
         httpd_uri_t distiller_status_uri = { .uri="/api/distiller/status", .method=HTTP_GET, .handler=get_status_distiler_control_handler };
+        httpd_uri_t distiller_ten_uri = { .uri="/api/distiller/ten", .method=HTTP_GET, .handler=set_ten_power_handler };
         httpd_register_uri_handler(server, &distiller_status_uri);
+        httpd_register_uri_handler(server, &distiller_ten_uri);
     }
 
     return server;

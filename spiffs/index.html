@@ -105,7 +105,10 @@
                     🌡️ <tspan id="temp-cube">--</tspan>°C
                 </text>
                 <text id="ten-power-label" x="150" y="420" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
-                    ⚗️ <tspan id="ten-power">--</tspan>%
+                    🔥 <tspan id="ten-power">--</tspan>%
+                </text>
+                <text id="voltage-220v-label" x="30" y="20" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
+                    <tspan id="voltage-220v">----</tspan> В
                 </text>
 
                 <!-- Колонна -->
@@ -149,8 +152,8 @@
             </div>
 
             <div id="manual-control">
-                <input type="range" id="manual-power" min="0" max="100" value="50">
-                <span id="manual-power-value">50%</span>
+                <input type="range" id="manual-power" min="0" max="100" value="0">
+                <span id="manual-power-value">0%</span>
                 <button onclick="setManualPower()">Установить мощность</button>
             </div>
 
@@ -164,13 +167,6 @@
             </div>
         </section>
         
-        <section id="control-led-section">
-            <svg id="led-status-svg" viewBox="0 0 20 20" style="width: 30px; height: 30px; vertical-align: middle; margin-right: 10px;">
-                <circle id="led-status" cx="10" cy="10" r="8" fill="#c0c0c0" stroke="#666" stroke-width="1"/>
-            </svg>
-            <button onclick="toggleLED()">LED Вкл/Выкл</button>
-        </section>
-
         <section id="statistic-section">
             <canvas id="chart" width="600" height="300"></canvas>
         </section>
@@ -197,6 +193,23 @@
                     <button onclick="TempSensorSettings('column')">Задать</button>
                 </div>
             </div>            
+        </section>
+
+        <section id="claibrate-220v-section">
+            <h2>Калибровка измерения напряжения</h2>
+            <text>Для калибровки измерителя напряжения 220В: </text>
+            <text>1. Отключите нагрузку с выхода устройства.</text>
+            <text>2. Нажмите кнопку "Включить выход".</text>
+            <text>3. Измерьте напряжение на выходе и внесите в поле.</text>
+            <text>4. Нажмите кнопку "Калибровать".</text>
+
+            <div id="claibrate-voltage-220v">
+                <input type="text" id="voltage-220v" placeholder="220">
+                <div>
+                    <button>Включить выход</button>
+                    <button>Задать</button>
+                </div>
+            </div>
         </section>
     </div>
 

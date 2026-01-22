@@ -10,8 +10,8 @@ function animateVapor() {
 animateVapor();
 
 //==========================================================================
-// Режим управления
-let isUserInput = true;
+// Функции для работы с управлением
+let isUserSetContorl = true;
 
 //Переключатель режима управления
 document.querySelectorAll('input[name="mode"]').forEach(el => 
@@ -36,14 +36,15 @@ document.getElementById('manual-power').addEventListener('input', (e) =>
 {
     document.getElementById('manual-power-value').innerText = e.target.value + '%';
     // Вызываем только если изменение от пользователя
-    if (isUserInput) 
+    if (isUserSetContorl) 
     {
         setManualPower();
     }
 });
 
 // Управление ТЭНом
-function setManualPower() {
+function setManualPower() 
+{
     const power = document.getElementById('manual-power').value;
     fetch(`/api/distiller/ten?power=${power}`)
         .then(res => res.json())
@@ -53,34 +54,44 @@ function setManualPower() {
 function setAutoStage() 
 {
     const stage = document.getElementById('auto-stage').value;
-    fetch(`/api/distiller/auto?stage=${stage}`)
+    fetch(`/api/distiller/mode?stage=${stage}`)
         .then(res => res.json())
         .then(alert);
 }
 
 // Функция для программной установки значения БЕЗ вызова setManualPower
-function setManualPowerGUI(value) 
+function setControl(status) 
 {
-    isUserInput = false; // говорим: это не пользователь
-    document.getElementById('manual-power').value = value;
-    document.getElementById('manual-power-value').innerText = value + '%';
-    isUserInput = true;  // восстанавливаем флаг
+    isUserSetContorl = false; // говорим: это не пользователь
+    document.getElementById('manual-power').value = status.ten_power;
+    // document.getElementById('manual-power-value').innerText = status.ten_power; + '%';
+    isUserSetContorl = true;  // восстанавливаем флаг
 }
 
 //==========================================================================
-// LED
-// Функция для запроса статуса LED
-async function getLEDStatus() {
-    try 
-    {
-        const response = await fetch('/api/led/status');
-        if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
-        const data = await response.json();
-        return data.led; // true или false
-    } 
-    catch (error) 
-    {
-        console.error('Ошибка получения статуса LED:', error);
+// Получение текущего статуса перегонного аппарата
+async function getDistillerStatus() {
+    try {
+        const response = await fetch('/api/distiller/status');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const buffer = await response.arrayBuffer();
+        if (buffer.byteLength < 24) 
+            {
+            throw new Error(`Недостаточно данных: получено ${buffer.byteLength}, ожидается ${expectedSize}`);
+        }
+
+        const view = new DataView(buffer);
+        return {
+            mode:                 view.getUint32(0,  true),   // offset 0 — целое число
+            temperature_column:   view.getFloat32(4,  true),  // offset 4
+            temperature_kube:     view.getFloat32(8,  true),  // offset 8
+            temperature_radiator: view.getFloat32(12, true),  // offset 12
+            ten_power:            view.getFloat32(16, true),  // offset 16
+            voltage_220V:         view.getFloat32(20, true)   // offset 20
+        };
+    } catch (error) {
+        console.error('Ошибка получения статуса:', error);
         return null;
     }
 }
@@ -88,62 +99,24 @@ async function getLEDStatus() {
 // При загрузке страницы
 document.addEventListener('DOMContentLoaded', function() 
 {
-    updateLEDIndicator(null);
-    updateLEDStatusDisplay();
-    
-    setInterval(updateLEDStatusDisplay, 5000);
+    updateDistillerStatus();    
+    setInterval(updateDistillerStatus, 1000);
 });
 
-// Обновить отображение статуса LED
-async function updateLEDStatusDisplay() 
-{
-    const panel = document.getElementById('control-led-section');
-    if(panel.style.display === 'none') return;
-    const status = await getLEDStatus();
-    updateLEDIndicator(status);
-    console.log('Статус LED:', status);
-}
+// Обновить отображение статуса перегонного аппарата
+async function updateDistillerStatus() 
+{   
+    const panel = document.getElementById('status-section');
+    if(panel.style.display == 'none') return;
 
-// Функция для переключения LED
-async function toggleLED() {
-    try 
-    {
-        updateLEDIndicator(null);        
-        const response = await fetch('/api/led/toggle');
-        if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
-        const data = await response.json();
-        
-        // Обновляем индикатор
-        updateLEDIndicator(data.led);
-        return data;
-    } 
-    catch (error) 
-    {
-        console.error('Ошибка при переключении LED:', error);
-        // При ошибке пытаемся получить актуальный статус
-        updateLEDStatusDisplay();
-    }
-}
+    const status = await getDistillerStatus();
+    if (!status) return; // ошибка запроса
 
-// Функция для обновления визуального индикатора LED
-function updateLEDIndicator(status) 
-{
-    const indicator = document.getElementById('led-status');
-
-    if (!indicator) return;
-
-    if (status === true) 
-    {
-        indicator.setAttribute("fill", "#4CAF50"); // Зеленый
-    } 
-    else if (status === false) 
-    {
-        indicator.setAttribute("fill", "#f44336"); // Красный
-    } 
-    else 
-    {
-        indicator.setAttribute("fill", "#FFA500"); // Оранжевый
-    }
+    document.getElementById('temp-cube').textContent = status.temperature_kube.toFixed(2);
+    document.getElementById('temp-column').textContent = status.temperature_column.toFixed(2);
+    document.getElementById('ten-power').textContent = status.ten_power.toFixed(2);
+    document.getElementById('voltage-220v').textContent = status.voltage_220V.toFixed(4);
+    setControl(status);
 }
 
 //==========================================================================
@@ -429,12 +402,14 @@ async function updateStatisticSection()
 document.addEventListener('DOMContentLoaded', function() 
 {
     updateStatisticSection();    
-    setInterval(updateStatisticSection, 3000);
+    setInterval(updateStatisticSection, 1500);
 });
 
 //==========================================================================
 // Функция для переключения между секциями
 function switchSections(current = "control") {
+    console.log('switchSections:', current);
+
     const statusSection = document.getElementById('status-section');
     const controlSection = document.getElementById('control-section');
     const statisticSection = document.getElementById('statistic-section');
@@ -664,7 +639,7 @@ async function getTempROM() {
     }
 }
 
-// Обновить отображение статуса LED
+// Обновить ROM датчика температуры
 async function updateTempSensorROM() {
     const panel = document.getElementById('temp-sensor-settings');
     if (!panel || panel.offsetParent === null) return; // элемент реально скрыт
@@ -678,38 +653,4 @@ async function updateTempSensorROM() {
     document.getElementById('temp-sensor-column-rom').innerText = rom.column;
 }
 //==========================================================================
-// Получение текущего статуса перегонного аппарата
-async function getDistillerStatus() {
-    try 
-    {
-        const response = await fetch('/api/distiller/status');
-        if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
-        const data = await response.json();
-        return data;
-    }
-    catch (error)
-    {
-        console.error('Ошибка получения статуса перегонного аппарата:', error);
-        return null;
-    }
-}
-
-// При загрузке страницы
-document.addEventListener('DOMContentLoaded', function() 
-{
-    updateDistillerStatus();    
-    setInterval(updateDistillerStatus, 1000);
-});
-
-// Обновить отображение статуса перегонного аппарата
-async function updateDistillerStatus() 
-{   
-    const panel = document.getElementById('status-section');
-    if(panel.style.display === 'none') return;
-
-    const status = await getDistillerStatus();
-    if (!status) return; // ошибка запроса
-
-    document.getElementById('temp-cube').textContent = status.temperature_kube.toFixed(2);
-    document.getElementById('temp-column').textContent = status.temperature_column.toFixed(2);
-}
+//Калибровка 220 В

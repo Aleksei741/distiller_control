@@ -69,7 +69,7 @@ esp_err_t tempsensor_rom_handler(httpd_req_t *req)
 //------------------------------------------------------------------------------
 esp_err_t tempsensor_set_rom_cube_handler(httpd_req_t *req)
 {
-    send_dc_command(DC_REQUEST_INIT_KUBE_ROM);
+    send_dc_command(DC_REQUEST_INIT_KUBE_ROM, NULL);
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, "{\"status\": \"kube ROM set\"}");
     return ESP_OK;
@@ -77,7 +77,7 @@ esp_err_t tempsensor_set_rom_cube_handler(httpd_req_t *req)
 //------------------------------------------------------------------------------
 esp_err_t tempsensor_set_rom_column_handler(httpd_req_t *req)
 {
-    send_dc_command(DC_REQUEST_INIT_COLUMN_ROM);    
+    send_dc_command(DC_REQUEST_INIT_COLUMN_ROM, NULL);    
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, "{\"status\": \"column ROM set\"}");
     return ESP_OK;

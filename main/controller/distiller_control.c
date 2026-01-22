@@ -17,10 +17,11 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 //******************************************************************************
 // Constants
 //******************************************************************************
-
+#define DEFAULT_VALUE 0xff
 //******************************************************************************
 // Type
 //******************************************************************************
@@ -39,6 +40,8 @@ static char *TAG = "[distiller_control]";
 
 static SemaphoreHandle_t g_mutex = NULL;
 static dc_status_t dc_status;
+
+QueueHandle_t qCommand;
 //------------------------------------------------------------------------------
 // Local Class
 //------------------------------------------------------------------------------
@@ -64,40 +67,72 @@ void init_distiller_control()
     heater_init();
     
     g_mutex = xSemaphoreCreateMutex();
-    if (g_mutex == NULL) {
+    if (g_mutex == NULL) 
+    {
         ESP_LOGE(TAG, "Failed to create mutex");
         return;
     }
+
+    qCommand = xQueueCreate(40, sizeof(dc_input_command_t));
+    if (qCommand == NULL)
+        ESP_LOGE(TAG, "Failed to create qCommand");
 
     xTaskCreate(distiller_control_task, "distiller_control_task", 4096, NULL, 5, NULL);
 }
 //------------------------------------------------------------------------------
 void distiller_control_task(void *arg)
 {
-    dc_status_t status;
-    dc_mode_e mode = DC_MANUAL_CONTROL;
-    heater_set_power(50);
-    uint8_t heater = 0;
+    dc_input_command_t cmd;
+    dc_status_t status;    
+    heater_set_power(0);
+    uint8_t flag_temperature = 0;
+
+    memset(&status, 0, sizeof(status));
+    status.mode = DC_MANUAL_CONTROL;
 
     while (1)
     {
-        get_column_temperature(&status.temperature_column);
-        get_kube_temperature(&status.temperature_kube);
-        get_radiator_temperature(&status.temperature_radiator);
+        flag_temperature |= get_column_temperature(&status.temperature_column) ? 1 : 0;
+        flag_temperature |= get_kube_temperature(&status.temperature_kube) ? 2 : 0;
+        flag_temperature |= get_radiator_temperature(&status.temperature_radiator) ? 4 : 0;
 
         if (xSemaphoreTake(g_mutex, portMAX_DELAY)) 
         {
-            memcpy(&dc_status, &status, sizeof(dc_status_t));
+            memcpy(&dc_status, &status, sizeof(dc_status_t));            
             xSemaphoreGive(g_mutex);
         }
+
+        while(xQueueReceive(qCommand, &cmd, 0) == pdTRUE) 
+        {
+            switch(cmd.command) 
+            {
+                case DC_REQUEST_INIT_COLUMN_ROM:
+                    request_init_column_rom();
+                    break;
+                case DC_REQUEST_INIT_KUBE_ROM:
+                    request_init_kube_rom();
+                    break;
+                case DC_SET_TEN_POWER:
+                    status.ten_power = cmd.valuei;
+                    break;
+                case DC_SET_MODE:
+                    status.mode = (dc_mode_e)cmd.valuei;
+                    break;
+                default:
+                    ESP_LOGW(TAG, "Unknown command: %d", cmd.command);
+                    break;
+            }
+        }
+
+        if(status.mode == DC_MANUAL_CONTROL)
+        {
+            heater_set_power(status.ten_power);
+        }
         
-        statistic_sampler(status.temperature_column, status.temperature_kube, status.temperature_radiator);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        heater_set_power(heater);
-        if(heater < 100)
-            heater += 5;
-        else
-            heater = 0;
+        if((flag_temperature & 7) == 7)
+            statistic_sampler(status.temperature_column, status.temperature_kube, status.temperature_radiator);
+
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
@@ -139,23 +174,27 @@ bool get_dc_status(dc_status_t *out_status)
 
     if (xSemaphoreTake(g_mutex, portMAX_DELAY)) 
     {
-        out_status->temperature_column = dc_status.temperature_column;
-        out_status->temperature_kube = dc_status.temperature_kube;
-        out_status->temperature_radiator = dc_status.temperature_radiator;
+        memcpy(out_status, &dc_status, sizeof(dc_status_t));
         xSemaphoreGive(g_mutex);
     }
     return true;
 }
 //------------------------------------------------------------------------------
-void send_dc_command(dc_command_e command)
+void send_dc_command(dc_command_e command, void* value)
 {
-    if(command == DC_REQUEST_INIT_COLUMN_ROM)
+    dc_input_command_t cmd = {0}; // Инициализируем нулями (особенно union)
+    cmd.command = command;
+
+    if(value != NULL)
     {
-        request_init_column_rom();
+        if (command == DC_SET_TEN_POWER)
+            cmd.valuei = *(uint32_t*)value;
+        else if(command == DC_SET_MODE)
+            cmd.valuei = *(uint32_t*)value;
     }
-    else if(command == DC_REQUEST_INIT_KUBE_ROM)
-    {
-        request_init_kube_rom();
+
+    if (xQueueSend(qCommand, &cmd, 0) != pdTRUE) {
+        ESP_LOGE(TAG, "Command %d dropped (queue full)", (int)command);
     }
 }
 //------------------------------------------------------------------------------

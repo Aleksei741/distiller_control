@@ -120,42 +120,8 @@ section {
     background: #dcdcdc;
 }
 
-/* Показ меню при наведении */
-/*.btn-wrap:hover .submenu {
-    display: block;
-}*/
 .btn-wrap.show .submenu {
     display: block;
-}
-
-/*=============================================================*/
-/* Управление светодиодом */
-#control-led-section {
-    display: flex;
-    align-items: center;      /* выравнивание по вертикали */
-    gap: 12px;                /* расстояние между SVG и кнопкой */
-    padding: 10px 0;
-    justify-content: center;
-}
-
-#control-led-section button {
-    padding: 8px 16px;
-    margin: 0px 20px;
-    font-size: 14px;
-    border: none;
-    border-radius: 6px;
-    background-color: #2196F3;
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-#control-led-section button:hover {
-    background-color: #1b7fcc;
-}
-
-#control-led-section button:active {
-    transform: translateY(1px);
 }
 
 /*=============================================================*/
@@ -266,7 +232,27 @@ section {
 #temp-sensor-settings button:active {
   transform: translateY(1px);
 }
+/*=============================================================*/
+/* калибровка 220 В*/
+#claibrate-220v-section {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
 
+#claibrate-220v-section {
+    display: none;
+}
+
+#claibrate-220v-section h2 {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+}
 /*=============================================================*/
 /* wifi окна */
 .wifi-STA-modal {

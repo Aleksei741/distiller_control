@@ -40,35 +40,51 @@ static const char *TAG = "[distiler_control_handlers]";
 esp_err_t get_status_distiler_control_handler(httpd_req_t *req)
 {
     dc_status_t status;
-    char buf[128];
 
     if (!get_dc_status(&status)) 
     {
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
+    httpd_resp_set_type(req, "application/octet-stream");
 
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_sendstr_chunk(req, "{");
+    uint8_t buf[24] = {0}; // 4 + 4*4 = 20 байт
+    uint32_t mode = (uint32_t) status.mode;
+    memcpy(&buf[0],  &mode,                       sizeof(uint32_t));
+    memcpy(&buf[4],  &status.temperature_column,  sizeof(float));
+    memcpy(&buf[8],  &status.temperature_kube,    sizeof(float));
+    memcpy(&buf[12], &status.temperature_radiator,sizeof(float));
+    memcpy(&buf[16], &status.ten_power,           sizeof(float));
+    memcpy(&buf[20], &status.voltage_220V,        sizeof(float));
 
-    // Column Temperature
-    snprintf(buf, sizeof(buf), "\"temperature_column\": %.2f", status.temperature_column);
-    httpd_resp_sendstr_chunk(req, buf);
+    httpd_resp_send(req, (const char *)&buf, sizeof(buf));
 
-    httpd_resp_sendstr_chunk(req, ", ");
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t set_ten_power_handler(httpd_req_t *req)
+{
+    char query[128] = {0};
+    char str_index[32] = {0};
+    uint32_t power = 0;
 
-    // Kube Temperature
-    snprintf(buf, sizeof(buf), "\"temperature_kube\": %.2f", status.temperature_kube);
-    httpd_resp_sendstr_chunk(req, buf);
+    // Прочитать query
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Bad query");
+        return ESP_FAIL;
+    }
 
-    httpd_resp_sendstr_chunk(req, ", ");
+    ESP_LOGI(TAG, "Ten power query: %s", query);
 
-    // Radiator Temperature
-    snprintf(buf, sizeof(buf), "\"temperature_radiator\": %.2f", status.temperature_radiator);
-    httpd_resp_sendstr_chunk(req, buf);
-
-    httpd_resp_sendstr_chunk(req, "}");
-    httpd_resp_sendstr_chunk(req, NULL);
+    // Извлечь power
+    if (httpd_query_key_value(query, "power", str_index, sizeof(str_index)) != ESP_OK) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing firts_index");
+        return ESP_FAIL;
+    }
+    power = strtoul(str_index, NULL, 10);
+    send_dc_command(DC_SET_TEN_POWER, &power);
 
     return ESP_OK;
 }

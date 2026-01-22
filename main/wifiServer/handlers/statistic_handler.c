@@ -124,13 +124,13 @@ esp_err_t get_statistic_handler(httpd_req_t *req)
     // Валидируем диапазон: если first_index >= latest_index — нечего отправлять
     if (first_index >= latest_index) 
     {
-        httpd_resp_set_type(req, "application/x-statistic-binary");
+        httpd_resp_set_type(req, "application/octet-stream");
         httpd_resp_send_chunk(req, NULL, 0); // Правильное завершение пустого chunked-ответа
         goto finish;
     }
 
     // Начинаем ответ chunked
-    if (httpd_resp_set_type(req, "application/x-statistic-binary") != ESP_OK) { result = ESP_FAIL; goto finish; }
+    if (httpd_resp_set_type(req, "application/octet-stream") != ESP_OK) { result = ESP_FAIL; goto finish; }
 
     // Итерация по индексам и отправка. При любой ошибке отправки — прерываем цикл.
     for (size_t idx = first_index; idx < latest_index; ++idx) 
