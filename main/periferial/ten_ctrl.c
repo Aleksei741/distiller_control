@@ -6,6 +6,8 @@
 #include "ten_ctrl.h"
 #include "esp_log.h"          // ESP_LOGI
 #include "driver/gpio.h"        // GPIO управление
+#include "soc/gpio_reg.h"
+#include "soc/gpio_struct.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 //******************************************************************************
@@ -53,14 +55,22 @@ void IRAM_ATTR zcd_isr(void *arg)
     last_cc = now_cc;
   
     error += heater_power;
-    if (error >= 100) 
+    if (error >= 100)
     {
-        gpio_set_level(TEN_GPIO, TEN_ACTIVE);
+        if (TEN_ACTIVE) {
+            GPIO.out_w1ts = (1ULL << TEN_GPIO); // установить HIGH
+        } else {
+            GPIO.out_w1tc = (1ULL << TEN_GPIO); // установить LOW
+        }
         error -= 100;
     } 
     else 
     {
-        gpio_set_level(TEN_GPIO, !TEN_ACTIVE);
+        if (TEN_ACTIVE) {
+            GPIO.out_w1tc = (1ULL << TEN_GPIO); // установить LOW
+        } else {
+            GPIO.out_w1ts = (1ULL << TEN_GPIO); // установить HIGH
+        }
     }
 
     portYIELD_FROM_ISR(pdFALSE);

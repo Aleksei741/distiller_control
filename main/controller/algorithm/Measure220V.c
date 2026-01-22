@@ -207,7 +207,7 @@ void voltage_220V_calculate_task(void *arg)
                 esr.summ = 0;
                 xSemaphoreGive(g_mutex);                    
             }
-            ESP_LOGI(TAG, "voltage 220V: %f", voltage);
+            //ESP_LOGI(TAG, "voltage 220V: %f", voltage);
         }
         last_ticks = ticks;
     }

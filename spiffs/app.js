@@ -12,6 +12,7 @@ animateVapor();
 //==========================================================================
 // Функции для работы с управлением
 let isUserSetContorl = true;
+let isPauseSet = false; 
 
 //Переключатель режима управления
 document.querySelectorAll('input[name="mode"]').forEach(el => 
@@ -31,24 +32,43 @@ document.querySelectorAll('input[name="mode"]').forEach(el =>
     });
 });
 
+// Обработчики активности ползунка
+const slider = document.getElementById('manual-power');
 // Обработчик: вызывается при движении ползунка
-document.getElementById('manual-power').addEventListener('input', (e) => 
-{
-    document.getElementById('manual-power-value').innerText = e.target.value + '%';
+slider.addEventListener('change', (e) => 
+{        
     // Вызываем только если изменение от пользователя
     if (isUserSetContorl) 
     {
         setManualPower();
+        isPauseSet = true;
     }
+});
+slider.addEventListener('input', (e) => 
+{
+    document.getElementById('manual-power-value').innerText = e.target.value + '%';        
+    // Вызываем только если изменение от пользователя
+    if (isUserSetContorl)
+        isPauseSet = true;
 });
 
 // Управление ТЭНом
-function setManualPower() 
+async function setManualPower() 
 {
     const power = document.getElementById('manual-power').value;
-    fetch(`/api/distiller/ten?power=${power}`)
-        .then(res => res.json())
-        .then(alert);
+    try 
+    {
+        const response = await fetch(`/api/distiller/ten?power=${power}`);
+        // Ничего не парсим — просто проверяем статус
+        if (response.ok)
+            console.log(`success /api/distiller/ten?power=${power}`);
+        else
+            console.warn(`Error /api/distiller/ten?power=${power}:`, response.status);
+    } 
+    catch (error) 
+    {
+        console.error('Ошибка сети:', error);
+    }
 }
 
 function setAutoStage() 
@@ -61,26 +81,31 @@ function setAutoStage()
 
 // Функция для программной установки значения БЕЗ вызова setManualPower
 function setControl(status) 
-{
-    isUserSetContorl = false; // говорим: это не пользователь
-    document.getElementById('manual-power').value = status.ten_power;
-    // document.getElementById('manual-power-value').innerText = status.ten_power; + '%';
-    isUserSetContorl = true;  // восстанавливаем флаг
+{    
+    isUserSetControl = false;
+    if(!isPauseSet)
+    {
+        document.getElementById('manual-power').value = Math.round(status.ten_power);
+        document.getElementById('manual-power-value').innerText = Math.round(status.ten_power) + '%';
+    }
+    isPauseSet = false;
+    isUserSetControl = true;
 }
 
 //==========================================================================
 // Получение текущего статуса перегонного аппарата
 async function getDistillerStatus() {
     try {
+        console.log("Отправка запроса: /api/distiller/status");        
         const response = await fetch('/api/distiller/status');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const buffer = await response.arrayBuffer();
         if (buffer.byteLength < 24) 
             {
-            throw new Error(`Недостаточно данных: получено ${buffer.byteLength}, ожидается ${expectedSize}`);
+            throw new Error(`Недостаточно данных: получено ${buffer.byteLength}, ожидается 24`);
         }
-
+        console.log("Статус ответа:", response.status, response.statusText, "ok =", response.ok, "данные:", buffer);
         const view = new DataView(buffer);
         return {
             mode:                 view.getUint32(0,  true),   // offset 0 — целое число
@@ -115,7 +140,7 @@ async function updateDistillerStatus()
     document.getElementById('temp-cube').textContent = status.temperature_kube.toFixed(2);
     document.getElementById('temp-column').textContent = status.temperature_column.toFixed(2);
     document.getElementById('ten-power').textContent = status.ten_power.toFixed(2);
-    document.getElementById('voltage-220v').textContent = status.voltage_220V.toFixed(4);
+    document.getElementById('voltage-220v').textContent = status.voltage_220V.toFixed(1);
     setControl(status);
 }
 
@@ -413,19 +438,16 @@ function switchSections(current = "control") {
     const statusSection = document.getElementById('status-section');
     const controlSection = document.getElementById('control-section');
     const statisticSection = document.getElementById('statistic-section');
-    const controlLedSection = document.getElementById('control-led-section');
     const tempSensorSection = document.getElementById('temp-sensor-settings');
 
     statusSection.style.display = 'none';
     controlSection.style.display = 'none';
     statisticSection.style.display = 'none';
-    controlLedSection.style.display = 'none';
     tempSensorSection.style.display = 'none';
     
     if (current == "control") {
         statusSection.style.display = 'block';
         controlSection.style.display = 'block';
-        controlLedSection.style.display = 'block';
     } else if (current == "statistic") {
         statisticSection.style.display = 'block';
     } else if (current == "tempsensor") {

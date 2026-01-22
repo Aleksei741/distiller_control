@@ -46,7 +46,7 @@ esp_err_t get_status_distiler_control_handler(httpd_req_t *req)
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
-    httpd_resp_set_type(req, "application/octet-stream");
+    
 
     uint8_t buf[24] = {0}; // 4 + 4*4 = 20 байт
     uint32_t mode = (uint32_t) status.mode;
@@ -57,7 +57,9 @@ esp_err_t get_status_distiler_control_handler(httpd_req_t *req)
     memcpy(&buf[16], &status.ten_power,           sizeof(float));
     memcpy(&buf[20], &status.voltage_220V,        sizeof(float));
 
-    httpd_resp_send(req, (const char *)&buf, sizeof(buf));
+    httpd_resp_set_type(req, "application/octet-stream");
+    httpd_resp_set_hdr(req, "Connection", "close");
+    httpd_resp_send(req, (const char *)buf, sizeof(buf));
 
     return ESP_OK;
 }
@@ -85,6 +87,9 @@ esp_err_t set_ten_power_handler(httpd_req_t *req)
     }
     power = strtoul(str_index, NULL, 10);
     send_dc_command(DC_SET_TEN_POWER, &power);
+
+    httpd_resp_set_hdr(req, "Connection", "close"); 
+    httpd_resp_send(req, NULL, 0); // отправка пустого тела
 
     return ESP_OK;
 }

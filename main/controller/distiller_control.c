@@ -62,7 +62,6 @@ void init_distiller_control()
     wifi_init();
     init_webserver();
     start_webserver();
-    Measure220V_init();
     psram_statistic_init();
     heater_init();
     
@@ -94,7 +93,7 @@ void distiller_control_task(void *arg)
     {
         flag_temperature |= get_column_temperature(&status.temperature_column) ? 1 : 0;
         flag_temperature |= get_kube_temperature(&status.temperature_kube) ? 2 : 0;
-        flag_temperature |= get_radiator_temperature(&status.temperature_radiator) ? 4 : 0;
+        get_radiator_temperature(&status.temperature_radiator);
 
         if (xSemaphoreTake(g_mutex, portMAX_DELAY)) 
         {
@@ -129,8 +128,8 @@ void distiller_control_task(void *arg)
             heater_set_power(status.ten_power);
         }
         
-        if((flag_temperature & 7) == 7)
-            statistic_sampler(status.temperature_column, status.temperature_kube, status.temperature_radiator);
+        if((flag_temperature & 3) == 3)
+            statistic_sampler(status.temperature_column, status.temperature_kube, status.ten_power);
 
         vTaskDelay(pdMS_TO_TICKS(100));
     }

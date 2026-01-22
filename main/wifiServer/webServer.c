@@ -63,7 +63,7 @@ httpd_handle_t start_webserver(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server = NULL;
-    config.max_uri_handlers = 32; // Увеличение количества URI обработчиков
+    config.max_uri_handlers = 36; // Увеличение количества URI обработчиков
 
     if (httpd_start(&server, &config) == ESP_OK) 
     {
@@ -80,12 +80,6 @@ httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &js_uri);
         httpd_register_uri_handler(server, &chartjs_uri);
         httpd_register_uri_handler(server, &ico_uri);
-
-        // Регистрация URI обработчиков для управления светодиодом
-        httpd_uri_t led_status_uri = {.uri = "/api/led/status", .method = HTTP_GET, .handler = get_led_status_handler};
-        httpd_uri_t led_toggle_uri = {.uri = "/api/led/toggle", .method = HTTP_GET, .handler = set_led_handler};
-        httpd_register_uri_handler(server, &led_status_uri);
-        httpd_register_uri_handler(server, &led_toggle_uri);
 
         // Регистрация URI обработчиков для управления WiFi
         httpd_uri_t wifi_ap_uri = { .uri="/api/wifi/ap", .method=HTTP_GET, .handler=wifi_set_ap_handler };

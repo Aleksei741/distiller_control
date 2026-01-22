@@ -162,7 +162,7 @@ void temperature_task(void *arg)
             if (xSemaphoreTake(g_temp_mutex, portMAX_DELAY)) 
             {
                 radiator_temperature = t;
-                fNewDataRadiatorTemp = false;
+                fNewDataRadiatorTemp = true;
                 xSemaphoreGive(g_temp_mutex);
             }
         }
