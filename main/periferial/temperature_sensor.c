@@ -74,7 +74,8 @@ void init_temperature_sensor()
         return;
     }
 
-    xTaskCreate(temperature_task, "temperature_task", 4096, NULL, 5, NULL);    
+    //xTaskCreate(temperature_task, "temperature_task", 4096, NULL, 10, NULL);
+    xTaskCreatePinnedToCore(temperature_task, "temperature_task", 4096,  NULL, 10, NULL, 0);
     ESP_LOGI(TAG, "Temperature sensors initialized");
 }
 //------------------------------------------------------------------------------
@@ -167,7 +168,7 @@ void temperature_task(void *arg)
             }
         }
 
-        //vTaskDelay(pdMS_TO_TICKS(1000)); // раз в секунду
+        vTaskDelay(pdMS_TO_TICKS(100)); // раз в секунду
     }
 }
 //------------------------------------------------------------------------------

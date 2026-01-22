@@ -8,6 +8,8 @@
 #include "esp_rom_sys.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "soc/dport_reg.h"
+#include "esp_timer.h"
 //******************************************************************************
 // Constants
 //******************************************************************************
@@ -40,6 +42,8 @@ void ds18b20_write_bit(const ds18b20_t *ds18b20, int bit);
 int ds18b20_read_bit(const ds18b20_t *ds18b20);
 void ds18b20_write_byte(const ds18b20_t *ds18b20, uint8_t byte);
 uint8_t ds18b20_read_byte(const ds18b20_t *ds18b20);
+
+static inline void ds18b20_delay_us(uint32_t us);
 //******************************************************************************
 // Function
 //******************************************************************************
@@ -226,56 +230,77 @@ uint8_t ds18b20_crc8(const uint8_t *data, uint8_t len)
 // Функция сброса с детектированием Presence Pulse
 int ds18b20_reset(const ds18b20_t *ds18b20)
 {
+    portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+    portENTER_CRITICAL(&mux);
+
     gpio_set_level(ds18b20->pin, 0);
-    esp_rom_delay_us(480);    
+    //esp_rom_delay_us(480);
+    ds18b20_delay_us(480);
     gpio_set_level(ds18b20->pin, 1);
-    esp_rom_delay_us(70);   // Ждем 15-60 µs для Presence Pulse
+    //esp_rom_delay_us(70);   // Ждем 15-60 µs для Presence Pulse
+    ds18b20_delay_us(70);
     
     // Читаем линию - датчик должен опустить ее в низкий уровень
     int presence = !gpio_get_level(ds18b20->pin);
     
     // Ждем окончания временного слота
-    esp_rom_delay_us(410);
+    //esp_rom_delay_us(410);
+    ds18b20_delay_us(410);
     
+    portEXIT_CRITICAL(&mux);
     return presence;
 }
 //------------------------------------------------------------------------------
 void ds18b20_write_bit(const ds18b20_t *ds18b20, int bit)
 {
+    portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+    portENTER_CRITICAL(&mux);
+
     // Записываем "1" или "0"
     if (bit) {
         // Запись "1": короткий низкий уровень
         gpio_set_level(ds18b20->pin, 0);
-        esp_rom_delay_us(6);     // Держим 1-15 µs
+        //esp_rom_delay_us(6);     // Держим 1-15 µs
+        ds18b20_delay_us(6);
         gpio_set_level(ds18b20->pin, 1);
-        esp_rom_delay_us(64);    // Ждем до конца временного слота
+        //esp_rom_delay_us(64);    // Ждем до конца временного слота
+        ds18b20_delay_us(64);
     } else {
         // Запись "0": длинный низкий уровень
         gpio_set_level(ds18b20->pin, 0);
-        esp_rom_delay_us(60);    // Держим 60 µs
+        //esp_rom_delay_us(60);    // Держим 60 µs
+        ds18b20_delay_us(60);
         gpio_set_level(ds18b20->pin, 1);
-        esp_rom_delay_us(10);    // Восстановление
+        //esp_rom_delay_us(10);    // Восстановление
+        ds18b20_delay_us(10);
     }
+    portEXIT_CRITICAL(&mux);
 }
 //------------------------------------------------------------------------------
 int ds18b20_read_bit(const ds18b20_t *ds18b20)
 {
     int bit;
+
+    portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+    portENTER_CRITICAL(&mux);
     
     // Генерируем слот чтения
     gpio_set_level(ds18b20->pin, 0);
-    esp_rom_delay_us(3);     // Держим 1-15 µs
+    //esp_rom_delay_us(3);     // Держим 1-15 µs
+    ds18b20_delay_us(3);
     
     // Отпускаем линию
     gpio_set_level(ds18b20->pin, 1);
-    esp_rom_delay_us(10);    // Ждем 15 µs
+    //esp_rom_delay_us(10);    // Ждем 15 µs
+    ds18b20_delay_us(10);
     
     // Читаем уровень линии
     bit = gpio_get_level(ds18b20->pin);
     
     // Ждем до конца временного слота
-    esp_rom_delay_us(53);    // Всего должно быть 60 µs
-    
+    //esp_rom_delay_us(53);    // Всего должно быть 60 µs
+    ds18b20_delay_us(53);
+    portEXIT_CRITICAL(&mux);
     return bit;
 }
 //------------------------------------------------------------------------------
@@ -300,5 +325,14 @@ uint8_t ds18b20_read_byte(const ds18b20_t *ds18b20)
         }
     }
     return byte;
+}
+//------------------------------------------------------------------------------
+// Точная задержка в микросекундах (без отключения прерываний)
+inline void ds18b20_delay_us(uint32_t us)
+{
+    uint64_t start = esp_timer_get_time();
+    while ((esp_timer_get_time() - start) < us) {
+        // активная задержка
+    }
 }
 //------------------------------------------------------------------------------

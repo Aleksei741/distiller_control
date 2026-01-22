@@ -50,6 +50,7 @@ esp_err_t css_handler(httpd_req_t *req);
 esp_err_t js_handler(httpd_req_t *req);
 esp_err_t chartjs_handler(httpd_req_t *req);
 esp_err_t ico_handler(httpd_req_t *req);
+static esp_err_t httpd_handle_not_found(httpd_req_t *req);
 //******************************************************************************
 // Function
 //******************************************************************************
@@ -64,6 +65,7 @@ httpd_handle_t start_webserver(void)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server = NULL;
     config.max_uri_handlers = 36; // Увеличение количества URI обработчиков
+    config.lru_purge_enable  = true; // Включение очистки наименее используемых соединений
 
     if (httpd_start(&server, &config) == ESP_OK) 
     {
@@ -202,6 +204,14 @@ esp_err_t chartjs_handler(httpd_req_t *req)
 esp_err_t ico_handler(httpd_req_t *req)
 {
     return send_file(req, "/spiffs/favicon.ico", "image/x-icon");
+}
+//------------------------------------------------------------------------------
+static esp_err_t httpd_handle_not_found(httpd_req_t *req)
+{
+    ESP_LOGW(TAG, "httpd_handle_not_found");
+    httpd_resp_set_status(req, "204 No Content");
+    httpd_resp_set_hdr(req, "Connection", "close");
+    return httpd_resp_send(req, NULL, 0);
 }
 //------------------------------------------------------------------------------
 

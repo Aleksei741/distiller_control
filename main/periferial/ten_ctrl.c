@@ -43,7 +43,6 @@ void heater_task(void *arg);
 //******************************************************************************
 void IRAM_ATTR zcd_isr(void *arg)
 {
-    static volatile uint8_t burst_counter = 0;
     static uint16_t error = 0;
 
     static int last_cc = 0;
