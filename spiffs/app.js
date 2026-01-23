@@ -101,9 +101,9 @@ async function getDistillerStatus() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const buffer = await response.arrayBuffer();
-        if (buffer.byteLength < 24) 
+        if (buffer.byteLength < 28) 
             {
-            throw new Error(`Недостаточно данных: получено ${buffer.byteLength}, ожидается 24`);
+            throw new Error(`Недостаточно данных: получено ${buffer.byteLength}, ожидается 28`);
         }
         console.log("Статус ответа:", response.status, response.statusText, "ok =", response.ok, "данные:", buffer);
         const view = new DataView(buffer);
@@ -113,7 +113,8 @@ async function getDistillerStatus() {
             temperature_kube:     view.getFloat32(8,  true),  // offset 8
             temperature_radiator: view.getFloat32(12, true),  // offset 12
             ten_power:            view.getFloat32(16, true),  // offset 16
-            voltage_220V:         view.getFloat32(20, true)   // offset 20
+            voltage_220V:         view.getFloat32(20, true),  // offset 20
+            fan:                  view.getUint32(24, true)    // offset 24
         };
     } catch (error) {
         console.error('Ошибка получения статуса:', error);
@@ -140,7 +141,8 @@ async function updateDistillerStatus()
     document.getElementById('temp-cube').textContent = status.temperature_kube.toFixed(2);
     document.getElementById('temp-column').textContent = status.temperature_column.toFixed(2);
     document.getElementById('ten-power').textContent = status.ten_power.toFixed(2);
-    document.getElementById('voltage-220v').textContent = status.voltage_220V.toFixed(1);
+    document.getElementById('fan-speed-percent').textContent = status.fan;
+    document.getElementById('radiator-temperature').textContent = status.temperature_radiator.toFixed(1);
     setControl(status);
 }
 

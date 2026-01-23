@@ -13,6 +13,10 @@
 #include <statistic.h>
 #include <statistic_sampler.h>
 #include <ten_ctrl.h>
+#include <buttons.h>
+#include <radiator_fan.h>
+
+#include <manual_control.h>
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -64,6 +68,8 @@ void init_distiller_control()
     start_webserver();
     psram_statistic_init();
     heater_init();
+    init_button_reset_wifi_ap(); // Обязательно после heater_init
+    init_fan();
     
     g_mutex = xSemaphoreCreateMutex();
     if (g_mutex == NULL) 
@@ -91,9 +97,12 @@ void distiller_control_task(void *arg)
 
     while (1)
     {
-        flag_temperature |= get_column_temperature(&status.temperature_column) ? 1 : 0;
-        flag_temperature |= get_kube_temperature(&status.temperature_kube) ? 2 : 0;
         get_radiator_temperature(&status.temperature_radiator);
+
+        flag_temperature |= get_column_temperature(&status.temperature_column) ? 1 : 0;
+        flag_temperature |= get_kube_temperature(&status.temperature_kube) ? 2 : 0;                
+        if((flag_temperature & 3) == 3)
+            statistic_sampler(status.temperature_column, status.temperature_kube, status.ten_power);
 
         if (xSemaphoreTake(g_mutex, portMAX_DELAY)) 
         {
@@ -101,7 +110,12 @@ void distiller_control_task(void *arg)
             xSemaphoreGive(g_mutex);
         }
 
-        while(xQueueReceive(qCommand, &cmd, 0) == pdTRUE) 
+        if(get_button_prees_reset_wifi_ap())
+            set_default_wifi_ap_settings();
+
+        status.fan = fan_process(status.temperature_radiator);
+
+        while(xQueueReceive(qCommand, &cmd, 0) == pdTRUE)
         {
             switch(cmd.command) 
             {
@@ -112,7 +126,8 @@ void distiller_control_task(void *arg)
                     request_init_kube_rom();
                     break;
                 case DC_SET_TEN_POWER:
-                    status.ten_power = cmd.valuei;
+                    if(status.mode == DC_MANUAL_CONTROL)
+                        manual_control_set_heater_power(cmd.valuei);
                     break;
                 case DC_SET_MODE:
                     status.mode = (dc_mode_e)cmd.valuei;
@@ -124,12 +139,11 @@ void distiller_control_task(void *arg)
         }
 
         if(status.mode == DC_MANUAL_CONTROL)
-        {
-            heater_set_power(status.ten_power);
-        }
+            manual_control_process(&status);
+        else
+            manual_control_set_heater_power(0);
         
-        if((flag_temperature & 3) == 3)
-            statistic_sampler(status.temperature_column, status.temperature_kube, status.ten_power);
+        
 
         vTaskDelay(pdMS_TO_TICKS(100));
     }

@@ -50,7 +50,7 @@ esp_err_t css_handler(httpd_req_t *req);
 esp_err_t js_handler(httpd_req_t *req);
 esp_err_t chartjs_handler(httpd_req_t *req);
 esp_err_t ico_handler(httpd_req_t *req);
-static esp_err_t httpd_handle_not_found(httpd_req_t *req);
+static esp_err_t not_found_uri_handle(httpd_req_t *req);
 //******************************************************************************
 // Function
 //******************************************************************************
@@ -64,6 +64,7 @@ httpd_handle_t start_webserver(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server = NULL;
+    config.uri_match_fn = httpd_uri_match_wildcard;
     config.max_uri_handlers = 36; // Увеличение количества URI обработчиков
     config.lru_purge_enable  = true; // Включение очистки наименее используемых соединений
 
@@ -118,6 +119,9 @@ httpd_handle_t start_webserver(void)
         httpd_uri_t distiller_ten_uri = { .uri="/api/distiller/ten", .method=HTTP_GET, .handler=set_ten_power_handler };
         httpd_register_uri_handler(server, &distiller_status_uri);
         httpd_register_uri_handler(server, &distiller_ten_uri);
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){.uri = "*", .method = HTTP_GET, .handler = not_found_uri_handle});
+        httpd_register_uri_handler(server, &(httpd_uri_t){.uri = "*", .method = HTTP_HEAD, .handler = not_found_uri_handle});
     }
 
     return server;
@@ -206,9 +210,9 @@ esp_err_t ico_handler(httpd_req_t *req)
     return send_file(req, "/spiffs/favicon.ico", "image/x-icon");
 }
 //------------------------------------------------------------------------------
-static esp_err_t httpd_handle_not_found(httpd_req_t *req)
+static esp_err_t not_found_uri_handle(httpd_req_t *req)
 {
-    ESP_LOGW(TAG, "httpd_handle_not_found");
+    ESP_LOGW(TAG, "not_found_uri_handle");
     httpd_resp_set_status(req, "204 No Content");
     httpd_resp_set_hdr(req, "Connection", "close");
     return httpd_resp_send(req, NULL, 0);

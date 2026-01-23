@@ -215,6 +215,16 @@ esp_err_t save_wifi_ap_settings(wifi_settings_t *in)
 
     return save_wifi_settings(&WIFI_STA_CFG, in);
 }
+//------------------------------------------------------------------------------
+esp_err_t set_default_wifi_ap_settings()
+{
+    wifi_settings_t wifi_ap_default;
+    strcpy(wifi_ap_default.pass, DEFAULT_PARAM_AP_WIFI_PASS);
+    strcpy(wifi_ap_default.ssid, DEFAULT_PARAM_AP_WIFI_SSID);
+    ESP_LOGI(TAG, "set_default_wifi_ap_settings. SSID=%s, PASS=%s", 
+        wifi_ap_default.ssid, wifi_ap_default.pass);
+    return save_wifi_ap_settings(&wifi_ap_default);
+}
 
 //------------------------------------------------------------------------------
 // Parameters temperature sensor

@@ -107,8 +107,11 @@
                 <text id="ten-power-label" x="150" y="420" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
                     🔥 <tspan id="ten-power">--</tspan>%
                 </text>
-                <text id="voltage-220v-label" x="30" y="20" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
-                    <tspan id="voltage-220v">----</tspan> В
+                <text id="fan-speed-percent-label" x="35" y="490" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
+                    ❄️ <tspan id="fan-speed-percent">--</tspan>%
+                </text>
+                <text id="radiator-temperature-label" x="35" y="460" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
+                    🌡️ <tspan id="radiator-temperature">--</tspan>°C
                 </text>
 
                 <!-- Колонна -->
@@ -154,7 +157,6 @@
             <div id="manual-control">
                 <input type="range" id="manual-power" min="0" max="100" value="0">
                 <span id="manual-power-value">0%</span>
-                <button onclick="setManualPower()">Установить мощность</button>
             </div>
 
             <div id="auto-control" style="display:none;">

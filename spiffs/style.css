@@ -253,6 +253,43 @@ section {
     color: #2c3e50;
     font-size: 1.5rem;
 }
+
+#claibrate-220v-section text,
+#claibrate-220v-section p {
+  display: block;
+  margin: 10px 0 20px;
+  line-height: 1.5;
+  font-size: 0.95rem;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #080808;
+}
+
+#claibrate-220v-section button {
+    padding: 8px 16px;
+    margin: 5px 20px;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    background-color: #2196F3;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#claibrate-220v-section input {
+    width: 80%; /* или любая желаемая ширина */
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    margin: 5px 20px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+#claibrate-220v-section button:hover {
+  background-color: #1b7fcc;
+}
 /*=============================================================*/
 /* wifi окна */
 .wifi-STA-modal {

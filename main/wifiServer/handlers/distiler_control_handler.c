@@ -45,10 +45,9 @@ esp_err_t get_status_distiler_control_handler(httpd_req_t *req)
     {
         httpd_resp_send_500(req);
         return ESP_FAIL;
-    }
-    
+    }    
 
-    uint8_t buf[24] = {0}; // 4 + 4*4 = 20 байт
+    uint8_t buf[28] = {0};
     uint32_t mode = (uint32_t) status.mode;
     memcpy(&buf[0],  &mode,                       sizeof(uint32_t));
     memcpy(&buf[4],  &status.temperature_column,  sizeof(float));
@@ -56,6 +55,8 @@ esp_err_t get_status_distiler_control_handler(httpd_req_t *req)
     memcpy(&buf[12], &status.temperature_radiator,sizeof(float));
     memcpy(&buf[16], &status.ten_power,           sizeof(float));
     memcpy(&buf[20], &status.voltage_220V,        sizeof(float));
+    uint32_t fan = (uint32_t) status.fan;
+    memcpy(&buf[24], &fan,                        sizeof(uint32_t));
 
     httpd_resp_set_type(req, "application/octet-stream");
     httpd_resp_set_hdr(req, "Connection", "close");
