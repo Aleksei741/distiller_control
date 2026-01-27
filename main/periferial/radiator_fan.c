@@ -10,7 +10,7 @@
 //******************************************************************************
 // Constants
 //******************************************************************************
-#define FAN_GPIO        18          // GPIO, к которому подключён ШИМ-вход вентилятора
+#define FAN_GPIO        23          // GPIO, к которому подключён ШИМ-вход вентилятора
 #define FAN_LEDC_TIMER  LEDC_TIMER_0
 #define FAN_LEDC_CHANNEL LEDC_CHANNEL_0
 #define FAN_PWM_FREQ_HZ 25000       // 25 kHz
@@ -100,13 +100,13 @@ uint8_t fan_process(float radiator_temperature)
     if ((int32_t)(time_now - time_temperature_50) < 0) 
         fan = 100;
     else if ((int32_t)(time_now - time_temperature_45) < 0) 
-        fan = 85;
+        fan = 90;
     else if ((int32_t)(time_now - time_temperature_40) < 0) 
-        fan = 70;
+        fan = 80;
     else if ((int32_t)(time_now - time_temperature_35) < 0) 
-        fan = 55;
+        fan = 70;
     else if ((int32_t)(time_now - time_temperature_30) < 0) 
-        fan = 40;
+        fan = 60;
     else
         fan = 0;
 

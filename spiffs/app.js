@@ -11,22 +11,25 @@ animateVapor();
 
 //==========================================================================
 // Функции для работы с управлением
-let isUserSetContorl = true;
-let isPauseSet = false; 
+let isUserSetManualPower = true;
+let isPauseManualPower = false; 
+let isUserSetMode = false;
+let isPauseSetMode = false;
 
 //Переключатель режима управления
 document.querySelectorAll('input[name="mode"]').forEach(el => 
 {
+    document.getElementById('manual-control').style.display = 'none';
+    document.getElementById('auto-control').style.display = 'none';
+
     el.addEventListener('change', () =>
     {
         if (el.value === 'manual') 
         {
             document.getElementById('manual-control').style.display = 'block';
-            document.getElementById('auto-control').style.display = 'none';
         } 
         else 
         {
-            document.getElementById('manual-control').style.display = 'none';
             document.getElementById('auto-control').style.display = 'block';
         }
     });
@@ -38,18 +41,18 @@ const slider = document.getElementById('manual-power');
 slider.addEventListener('change', (e) => 
 {        
     // Вызываем только если изменение от пользователя
-    if (isUserSetContorl) 
+    if (isUserSetManualPower) 
     {
         setManualPower();
-        isPauseSet = true;
+        isPauseManualPower = true;
     }
 });
 slider.addEventListener('input', (e) => 
 {
     document.getElementById('manual-power-value').innerText = e.target.value + '%';        
     // Вызываем только если изменение от пользователя
-    if (isUserSetContorl)
-        isPauseSet = true;
+    if (isUserSetManualPower)
+        isPauseManualPower = true;
 });
 
 // Управление ТЭНом
@@ -83,12 +86,12 @@ function setAutoStage()
 function setControl(status) 
 {    
     isUserSetControl = false;
-    if(!isPauseSet)
+    if(!isPauseManualPower)
     {
         document.getElementById('manual-power').value = Math.round(status.ten_power);
         document.getElementById('manual-power-value').innerText = Math.round(status.ten_power) + '%';
     }
-    isPauseSet = false;
+    isPauseManualPower = false;
     isUserSetControl = true;
 }
 
@@ -142,7 +145,7 @@ async function updateDistillerStatus()
     document.getElementById('temp-column').textContent = status.temperature_column.toFixed(2);
     document.getElementById('ten-power').textContent = status.ten_power.toFixed(2);
     document.getElementById('fan-speed-percent').textContent = status.fan;
-    document.getElementById('radiator-temperature').textContent = status.temperature_radiator.toFixed(1);
+    document.getElementById('radiator-temperature').textContent = status.temperature_radiator.toFixed(0);
     setControl(status);
 }
 

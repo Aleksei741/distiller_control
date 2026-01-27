@@ -1,6 +1,7 @@
 set(SOURCES
     main.c
     controller/distiller_control.c
+    controller/manual_control.c
     controller/algorithm/PID.c    
     controller/algorithm/Measure220V.c
     controller/algorithm/statistic_sampler.c

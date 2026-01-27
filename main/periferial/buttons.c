@@ -7,7 +7,7 @@
 //******************************************************************************
 // Constants
 //******************************************************************************
-#define BUTTON_RESET_WIFI_AP 34
+#define BUTTON_RESET_WIFI_AP 39
 //******************************************************************************
 // Type
 //******************************************************************************
@@ -45,7 +45,7 @@ void init_button_reset_wifi_ap()
     io_conf.intr_type = GPIO_INTR_NEGEDGE;
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pin_bit_mask = 1ULL << BUTTON_RESET_WIFI_AP;
-    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    io_conf.pull_up_en = GPIO_PULLDOWN_DISABLE;
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     gpio_config(&io_conf);
 
