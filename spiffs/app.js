@@ -19,11 +19,11 @@ let isPauseSetMode = false;
 //Переключатель режима управления
 document.querySelectorAll('input[name="mode"]').forEach(el => 
 {
-    document.getElementById('manual-control').style.display = 'none';
-    document.getElementById('auto-control').style.display = 'none';
-
     el.addEventListener('change', () =>
     {
+        document.getElementById('manual-control').style.display = 'none';
+        document.getElementById('auto-control').style.display = 'none';
+        
         if (el.value === 'manual') 
         {
             document.getElementById('manual-control').style.display = 'block';

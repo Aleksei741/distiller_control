@@ -144,13 +144,18 @@
         </section>
 
         <section id="control-section">
-            <h2>Управление</h2>
-            <div>
+            <div class="mode-selector">
                 <label>
                     <input type="radio" name="mode" value="manual" checked> Ручной
                 </label>
                 <label>
-                    <input type="radio" name="mode" value="auto"> Автоматический
+                    <input type="radio" name="mode" value="wash-distillation"> Перегон браги
+                </label>
+                <label>
+                    <input type="radio" name="mode" value="spirit-rectification"> Дистиляция
+                </label>
+                <label>
+                    <input type="radio" name="mode" value="autoclave"> Автоклав
                 </label>
             </div>
 
@@ -167,6 +172,49 @@
                 </select>
                 <button onclick="setAutoStage()">Выбрать этап</button>
             </div>
+        </section>
+        
+        <!-- style="display:none;"-->
+        <section class="pid-controller" id="pid-autoclav-section">
+            <h2>ПИД-регулятор автоклав</h2>
+
+            <!-- Текущие измерения -->
+            <div class="pid-current-values">
+                <p>Текущая температура: <span class="pid-temp">-- °C</span></p>
+                <p>Мощность ТЭНа: <span class="pid-heater-power">-- %</span></p>
+                
+            </div>
+
+            <!-- Компоненты ПИД -->
+            <div class="pid-components">
+                <p>Пропорциональная составляющая (P): <span class="pidd-autoclav-p">-- %</span></p>
+                <p>Интегральная составляющая (I): <span class="pidd-autoclav-i">-- %</span></p>
+                <p>Дифференциальная составляющая (D): <span class="pidd-autoclav-d">-- %</span></p>
+            </div>
+
+            <!-- Настройки коэффициентов -->
+            <form class="pid-settings-form">
+                <fieldset>
+                <legend>Коэффициенты</legend>
+
+                <label>
+                    Kp:
+                    <input type="number" class="kp" step="0.01" required>
+                </label>
+
+                <label>
+                    Ki:
+                    <input type="number" class="ki" step="0.01" required>
+                </label>
+
+                <label>
+                    Kd:
+                    <input type="number" class="kd" step="0.01" required>
+                </label>
+
+                <button type="submit">Обновить</button>
+                </fieldset>
+            </form>
         </section>
         
         <section id="statistic-section">
