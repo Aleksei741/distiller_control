@@ -67,7 +67,7 @@
                 <button >Настройка</button>
                 <div class="submenu">
                     <div onclick="switchSections('tempsensor')">Датчики температуры</div>
-                    <div>Расширенный режим</div>
+                    <div onclick="switchSections('flowdirection')">Направление шланга</div>
                     <div onclick="beep(2000, 10)">beep</div>
                 </div>
             </div>
@@ -162,6 +162,12 @@
             <div id="manual-control">
                 <input type="range" id="manual-power" min="0" max="100" value="0">
                 <span id="manual-power-value">0%</span>
+
+                <select id="flow-direction-select">
+                    <option value="0">Головы</option>
+                    <option value="1">Тело</option>
+                    <option value="2">Хвосты</option>
+                </select>
             </div>
 
             <div id="auto-control" style="display:none;">
@@ -243,6 +249,22 @@
                     <button onclick="TempSensorSettings('column')">Задать</button>
                 </div>
             </div>            
+        </section>
+
+        <section id="flow-direction-settings">
+            <h2>Настройки положения клапанов направления потока</h2>
+            <div id="flow-direction-settings-position1">
+                <label>Позиция 1: </label>
+                <input type="number" step="1" min="0" max="359" id="flow-direction-position1-angle" placeholder="Угол в градусах">
+            </div>
+            <div id="flow-direction-settings-position2">
+                <label>Позиция 2: </label>
+                <input type="number" step="1" min="0" max="359" id="flow-direction-position2-angle" placeholder="Угол в градусах">
+            </div>
+            <div id="flow-direction-settings-position3">
+                <label>Позиция 3: </label>
+                <input type="number" step="1" min="0" max="359" id="flow-direction-position3-angle" placeholder="Угол в градусах">
+            </div>
         </section>
 
         <section id="claibrate-220v-section">

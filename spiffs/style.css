@@ -417,6 +417,32 @@ section {
   background-color: #1b7fcc;
 }
 /*=============================================================*/
+/* направление потока жидкостей */
+#flow-direction-settings {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+#flow-direction-settings input {
+    width: 40%; /* или любая желаемая ширина */
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    margin: 5px 20px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+#flow-direction-settings {
+    display: none;
+}
+
+/*=============================================================*/
 /* wifi окна */
 .wifi-STA-modal {
     display: none; /* Скрыто по умолчанию */

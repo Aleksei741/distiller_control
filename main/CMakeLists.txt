@@ -2,6 +2,7 @@ set(SOURCES
     main.c
     controller/distiller_control.c
     controller/manual_control.c
+    controller/autoclave_mode.c
     controller/algorithm/PID.c    
     controller/algorithm/Measure220V.c
     controller/algorithm/statistic_sampler.c
@@ -15,6 +16,7 @@ set(SOURCES
     wifiServer/handlers/statistic_handler.c
     wifiServer/handlers/tempsensor_handler.c
     wifiServer/handlers/wifi_handler.c
+    wifiServer/handlers/flow_direction_handler.c
     periferial/led.c
     periferial/temperature_sensor.c
     periferial/statistic.c
@@ -23,12 +25,13 @@ set(SOURCES
     periferial/ten_ctrl.c
     periferial/buttons.c
     periferial/radiator_fan.c
+    periferial/flow_direction.c
     periferial/modbus/modbus_master.c
     periferial/modbus/driver/modbus_crc.c
     periferial/modbus/driver/modbus_rtu_coils.c
     periferial/modbus/driver/modbus_rtu_discrete_input.c
     periferial/modbus/driver/modbus_rtu_holding_registers.c
-    periferial/modbus/driver/modbus_rtu_input_registers.c    
+    periferial/modbus/driver/modbus_rtu_input_registers.c
 )
 
 set(INCLUDES

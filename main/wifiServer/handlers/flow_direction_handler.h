@@ -2,7 +2,7 @@
 //******************************************************************************
 // Секция include
 //******************************************************************************
-#include "parameters.h"
+#include "esp_http_server.h"    // HTTP сервер
 //******************************************************************************
 // Секция определения констант
 //******************************************************************************
@@ -10,12 +10,7 @@
 //******************************************************************************
 // Секция определения типов
 //******************************************************************************
-#define MAX_SCAN_APS 20
-typedef struct {
-    char ssid[32];
-    int8_t rssi;
-    uint8_t authmode;
-} scanned_ap_info_t;
+
 //******************************************************************************
 // Секция определения глобальных переменных
 //******************************************************************************
@@ -23,13 +18,9 @@ typedef struct {
 //******************************************************************************
 // Секция прототипов глобальных функций
 //******************************************************************************
-void wifi_init(void);
-void wifi_start_ap_sta(const parameters_wifi_settings_t *cfg_sta, const parameters_wifi_settings_t *cfg_ap);
-void wifi_reinit_sta(const parameters_wifi_settings_t *cfg_sta);
-void wifi_sta_request_scan(void);
-int wifi_sta_is_scan_done(void);
-int get_wifi_sta_scan_results(scanned_ap_info_t *aps);
-void wifi_reinit_ap(const parameters_wifi_settings_t *cfg_ap);
+esp_err_t set_position_flow_direction_handler(httpd_req_t *req);
+esp_err_t get_parameters_flow_direction_handler(httpd_req_t *req);
+esp_err_t set_parameters_flow_direction_handler(httpd_req_t *req);
 //******************************************************************************
 // Секция определения макросов
 //******************************************************************************

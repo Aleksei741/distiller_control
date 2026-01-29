@@ -16,6 +16,7 @@
 #include "statistic_handler.h"
 #include "tempsensor_handler.h"
 #include "wifi_handler.h"
+#include "flow_direction_handler.h"
 //******************************************************************************
 // Cinstants
 //******************************************************************************
@@ -119,6 +120,14 @@ httpd_handle_t start_webserver(void)
         httpd_uri_t distiller_ten_uri = { .uri="/api/distiller/ten", .method=HTTP_GET, .handler=set_ten_power_handler };
         httpd_register_uri_handler(server, &distiller_status_uri);
         httpd_register_uri_handler(server, &distiller_ten_uri);
+
+        // Регистрация URI обработчиков для управления положением направления потока
+        httpd_uri_t set_position_flow_direction_uri = { .uri="/api/flow/position", .method=HTTP_GET, .handler=set_position_flow_direction_handler };
+        httpd_uri_t set_parameters_flow_direction_uri = { .uri="/api/flow/set_parameters", .method=HTTP_GET, .handler=set_parameters_flow_direction_handler };
+        httpd_uri_t get_parameters_flow_direction_uri = { .uri="/api/flow/get_parameters", .method=HTTP_GET, .handler=get_parameters_flow_direction_handler };
+        httpd_register_uri_handler(server, &set_position_flow_direction_uri);
+        httpd_register_uri_handler(server, &set_parameters_flow_direction_uri);
+        httpd_register_uri_handler(server, &get_parameters_flow_direction_uri);
 
         httpd_register_uri_handler(server, &(httpd_uri_t){.uri = "*", .method = HTTP_GET, .handler = not_found_uri_handle});
         httpd_register_uri_handler(server, &(httpd_uri_t){.uri = "*", .method = HTTP_HEAD, .handler = not_found_uri_handle});

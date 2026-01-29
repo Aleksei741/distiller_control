@@ -34,8 +34,8 @@
 // Local Variable
 //------------------------------------------------------------------------------
 static const char *TAG = "[wifi]";
-static wifi_settings_t g_sta_cfg;
-static wifi_settings_t g_ap_cfg;
+static parameters_wifi_settings_t g_sta_cfg;
+static parameters_wifi_settings_t g_ap_cfg;
 
 static SemaphoreHandle_t scan_mutex = NULL;
 static scanned_ap_info_t scan_results[MAX_SCAN_APS];
@@ -101,8 +101,8 @@ void wifi_init(void)
         NULL
     ));
 
-    wifi_settings_t sta_cfg;
-    wifi_settings_t ap_cfg;
+    parameters_wifi_settings_t sta_cfg;
+    parameters_wifi_settings_t ap_cfg;
     load_wifi_sta_settings(&sta_cfg);
     load_wifi_ap_settings(&ap_cfg);
     wifi_start_ap_sta(&sta_cfg, &ap_cfg);
@@ -113,7 +113,7 @@ void wifi_init(void)
     ESP_LOGI(TAG, "Wi-Fi initialization successful.");
 }
 //------------------------------------------------------------------------------
-void wifi_start_ap_sta(const wifi_settings_t *cfg_sta, const wifi_settings_t *cfg_ap)
+void wifi_start_ap_sta(const parameters_wifi_settings_t *cfg_sta, const parameters_wifi_settings_t *cfg_ap)
 {
     // Запоминаем STA конфиг
     strncpy(g_sta_cfg.ssid, cfg_sta->ssid, sizeof(g_sta_cfg.ssid));
@@ -195,7 +195,7 @@ void wifi_start_ap_sta(const wifi_settings_t *cfg_sta, const wifi_settings_t *cf
     }
 }
 //------------------------------------------------------------------------------
-void wifi_reinit_sta(const wifi_settings_t *new_cfg_sta)
+void wifi_reinit_sta(const parameters_wifi_settings_t *new_cfg_sta)
 {
     if (!new_cfg_sta) return;
 
@@ -320,7 +320,7 @@ int wifi_sta_is_scan_done(void)
     return (int)done;
 }
 //------------------------------------------------------------------------------
-void wifi_reinit_ap(const wifi_settings_t *new_cfg_ap)
+void wifi_reinit_ap(const parameters_wifi_settings_t *new_cfg_ap)
 {
     if (!new_cfg_ap) return;
 

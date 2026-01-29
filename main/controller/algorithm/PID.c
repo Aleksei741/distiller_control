@@ -50,10 +50,10 @@ float PID_calc(PID_t *pid, float setpoint, float measurement, float dt)
     pid->status.prev_error = error;
 
     // --- Выход
-    float out =
-        pid->param.Kp * error +
-        pid->param.Ki * pid->status.integral +
-        pid->param.Kd * pid->status.prev_deriv;
+    pid->status.p_term = pid->param.Kp * error;
+    pid->status.i_term = pid->param.Ki * pid->status.integral;
+    pid->status.d_term = pid->param.Kd * pid->status.prev_deriv;
+    float out =  pid->status.p_term + pid->status.i_term + pid->status.d_term;
 
     // --- Ограничение выхода
     if (out > pid->param.out_max) out = pid->param.out_max;
@@ -62,7 +62,7 @@ float PID_calc(PID_t *pid, float setpoint, float measurement, float dt)
     return out;
 }
 //------------------------------------------------------------------------------
-inline void PID_Init(PID_t *pid, float Kp, float Ki, float Kd)
+void PID_Init(PID_t *pid, float Kp, float Ki, float Kd)
 {
     pid->param.Kp = Kp;
     pid->param.Ki = Ki;
@@ -158,4 +158,21 @@ void PID_GetIntegralLimits(PID_t *pid, float *integr_min, float *integr_max)
 //------------------------------------------------------------------------------
 void PID_SetDFilter(PID_t *pid, float d_filter) { pid->param.d_filter = d_filter; }
 float PID_GetDFilter(PID_t *pid) { return pid->param.d_filter; }
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// ------------------- dt -------------------
+//------------------------------------------------------------------------------
+void PID_SetDt(PID_t *pid, float dt) { pid->param.dt = dt; }
+float PID_GetDt(PID_t *pid) { return pid->param.dt; }
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// ------------------- Текущие значения -------------------
+//------------------------------------------------------------------------------
+float PID_GetPterm(PID_t *pid) { return pid->status.p_term; }
+float PID_GetIterm(PID_t *pid) { return pid->status.i_term; }
+float PID_GetDterm(PID_t *pid) { return pid->status.d_term; }
 //------------------------------------------------------------------------------

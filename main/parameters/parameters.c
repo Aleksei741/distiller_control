@@ -26,6 +26,12 @@
 #define KEY_KUBE_TEMP_SENSOR_ROM            "6"
 
 #define KEY_CALIBRATION_220V                "7"
+
+#define KEY_FLOW_DIRECTION_ANGLE_1          "8"
+#define KEY_FLOW_DIRECTION_ANGLE_2          "9"
+#define KEY_FLOW_DIRECTION_ANGLE_3          "A"
+
+#define KEY_AUTOCLAVE_MODE_PID              "B"
 //******************************************************************************
 // Type
 //******************************************************************************
@@ -55,8 +61,8 @@ static const char *TAG = "[parameters]";
 //******************************************************************************
 // Function prototype
 //******************************************************************************
-esp_err_t load_wifi_settings(const wifi_config_desc_t *cfg, wifi_settings_t *out);
-esp_err_t save_wifi_settings(const wifi_config_desc_t *cfg, const wifi_settings_t *in);
+esp_err_t load_wifi_settings(const wifi_config_desc_t *cfg, parameters_wifi_settings_t *out);
+esp_err_t save_wifi_settings(const wifi_config_desc_t *cfg, const parameters_wifi_settings_t *in);
 
 //******************************************************************************
 // Function
@@ -79,7 +85,7 @@ void parameters_init(void)
 // Parameters wifi 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-esp_err_t load_wifi_settings(const wifi_config_desc_t *cfg, wifi_settings_t *out)
+esp_err_t load_wifi_settings(const wifi_config_desc_t *cfg, parameters_wifi_settings_t *out)
 {
     nvs_handle_t h;
     esp_err_t err = nvs_open("dc", NVS_READONLY, &h);
@@ -127,7 +133,7 @@ esp_err_t load_wifi_settings(const wifi_config_desc_t *cfg, wifi_settings_t *out
     return ESP_OK;
 }
 //------------------------------------------------------------------------------
-esp_err_t save_wifi_settings(const wifi_config_desc_t *cfg, const wifi_settings_t *in)
+esp_err_t save_wifi_settings(const wifi_config_desc_t *cfg, const parameters_wifi_settings_t *in)
 {
     nvs_handle_t h;
     nvs_open("dc", NVS_READWRITE, &h);
@@ -144,7 +150,7 @@ esp_err_t save_wifi_settings(const wifi_config_desc_t *cfg, const wifi_settings_
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-esp_err_t load_wifi_sta_settings(wifi_settings_t *out)
+esp_err_t load_wifi_sta_settings(parameters_wifi_settings_t *out)
 {
     const wifi_config_desc_t WIFI_STA_CFG = 
     {
@@ -158,7 +164,7 @@ esp_err_t load_wifi_sta_settings(wifi_settings_t *out)
     return load_wifi_settings(&WIFI_STA_CFG, out);
 }
 //------------------------------------------------------------------------------
-esp_err_t save_wifi_sta_settings(const wifi_settings_t *in)
+esp_err_t save_wifi_sta_settings(const parameters_wifi_settings_t *in)
 {
     const wifi_config_desc_t WIFI_STA_CFG = 
     {
@@ -172,7 +178,7 @@ esp_err_t save_wifi_sta_settings(const wifi_settings_t *in)
     return save_wifi_settings(&WIFI_STA_CFG, in);
 }
 //------------------------------------------------------------------------------
-esp_err_t load_wifi_ap_settings(wifi_settings_t *out)
+esp_err_t load_wifi_ap_settings(parameters_wifi_settings_t *out)
 {
     const wifi_config_desc_t WIFI_AP_CFG = 
     {
@@ -196,7 +202,7 @@ esp_err_t load_wifi_ap_settings(wifi_settings_t *out)
     return err;
 }
 //------------------------------------------------------------------------------
-esp_err_t save_wifi_ap_settings(wifi_settings_t *in)
+esp_err_t save_wifi_ap_settings(parameters_wifi_settings_t *in)
 {
     const wifi_config_desc_t WIFI_STA_CFG = 
     {
@@ -218,7 +224,7 @@ esp_err_t save_wifi_ap_settings(wifi_settings_t *in)
 //------------------------------------------------------------------------------
 esp_err_t set_default_wifi_ap_settings()
 {
-    wifi_settings_t wifi_ap_default;
+    parameters_wifi_settings_t wifi_ap_default;
     strcpy(wifi_ap_default.pass, DEFAULT_PARAM_AP_WIFI_PASS);
     strcpy(wifi_ap_default.ssid, DEFAULT_PARAM_AP_WIFI_SSID);
     ESP_LOGI(TAG, "set_default_wifi_ap_settings. SSID=%s, PASS=%s", 
@@ -334,7 +340,7 @@ esp_err_t save_kube_rom_temperature_sensor(const uint8_t *in_rom)
 //------------------------------------------------------------------------------
 // Measure 220 V
 //------------------------------------------------------------------------------
-esp_err_t load_calibration_220V(meas_220V_settings_t *calib)
+esp_err_t load_calibration_220V(parameters_meas_220V_settings_t *calib)
 {
     nvs_handle_t h;
     esp_err_t err = nvs_open("dc", NVS_READONLY, &h);
@@ -344,7 +350,7 @@ esp_err_t load_calibration_220V(meas_220V_settings_t *calib)
         return err;
     }
 
-    size_t required_size = sizeof(meas_220V_settings_t);
+    size_t required_size = sizeof(parameters_meas_220V_settings_t);
     err = nvs_get_blob(h, KEY_CALIBRATION_220V, calib, &required_size);
 
     if (err != ESP_OK) {
@@ -360,7 +366,7 @@ esp_err_t load_calibration_220V(meas_220V_settings_t *calib)
     return ESP_OK;
 }
 //------------------------------------------------------------------------------
-esp_err_t save_calibration_220V(const meas_220V_settings_t *calib)
+esp_err_t save_calibration_220V(const parameters_meas_220V_settings_t *calib)
 {
     nvs_handle_t h;
     esp_err_t err = nvs_open("dc", NVS_READWRITE, &h);
@@ -370,7 +376,7 @@ esp_err_t save_calibration_220V(const meas_220V_settings_t *calib)
         return err;
     }
 
-    err = nvs_set_blob(h, KEY_CALIBRATION_220V, calib, sizeof(meas_220V_settings_t));
+    err = nvs_set_blob(h, KEY_CALIBRATION_220V, calib, sizeof(parameters_meas_220V_settings_t));
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "save_calibration_220V: nvs_set_blob failed err: %d", err);
         nvs_close(h);
@@ -382,6 +388,143 @@ esp_err_t save_calibration_220V(const meas_220V_settings_t *calib)
     
     ESP_LOGI(TAG, "save_calibration_220V: zero_lvl: %d, ref_voltage: %f, ref_ESR: %f", 
         calib->zero_lvl, calib->ref_voltage, calib->ref_ESR);
+
+    return err;
+}
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// External flow direction
+//------------------------------------------------------------------------------
+esp_err_t load_external_flow_direction(parameters_position_flow_direction_e position, uint16_t *angle)
+{
+    nvs_handle_t h;
+    esp_err_t err = nvs_open("dc", NVS_READONLY, &h);
+    char* KEY = KEY_FLOW_DIRECTION_ANGLE_1;
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_external_flow_direction: nvs_open failed err: %d", err);
+        return err;
+    }
+
+    if(position == PARAMETERS_POSITION_FLOW_DIRECTION_ANGLE_1)
+        KEY = KEY_FLOW_DIRECTION_ANGLE_1;
+    else if(position == PARAMETERS_POSITION_FLOW_DIRECTION_ANGLE_2)
+        KEY = KEY_FLOW_DIRECTION_ANGLE_2;  
+    else if(position == PARAMETERS_POSITION_FLOW_DIRECTION_ANGLE_3)
+        KEY = KEY_FLOW_DIRECTION_ANGLE_3;
+    else
+        return ESP_ERR_INVALID_ARG;
+        
+    size_t required_size = 2;
+    err = nvs_get_blob(h, KEY, angle, &required_size);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_external_flow_direction: no saved angle flow direction err: %d", err);
+        nvs_close(h);
+        return err;
+    }
+
+    ESP_LOGI(TAG, "load_external_flow_direction: position: %d angle: %d", position, *angle);
+
+    nvs_close(h);
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t save_external_flow_direction(parameters_position_flow_direction_e position, const uint16_t angle)
+{
+    nvs_handle_t h;
+    esp_err_t err = nvs_open("dc", NVS_READWRITE, &h);
+    char* KEY = KEY_FLOW_DIRECTION_ANGLE_1;
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "save_external_flow_direction: nvs_open failed err: %d", err);
+        return err;
+    }
+
+    if(position == PARAMETERS_POSITION_FLOW_DIRECTION_ANGLE_1)
+        KEY = KEY_FLOW_DIRECTION_ANGLE_1;
+    else if(position == PARAMETERS_POSITION_FLOW_DIRECTION_ANGLE_2)
+        KEY = KEY_FLOW_DIRECTION_ANGLE_2;  
+    else if(position == PARAMETERS_POSITION_FLOW_DIRECTION_ANGLE_3)
+        KEY = KEY_FLOW_DIRECTION_ANGLE_3;
+    else
+        return ESP_ERR_INVALID_ARG;
+
+    err = nvs_set_blob(h, KEY, &angle, sizeof(uint16_t));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "save_external_flow_direction: nvs_set_blob failed err: %d", err);
+        nvs_close(h);
+        return err;
+    }
+
+    err = nvs_commit(h);
+    nvs_close(h);
+    
+    ESP_LOGI(TAG, "save_external_flow_direction: position: %d angle: %d", position, angle);
+
+    return err;
+}
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// Autoclave mode PID parameters
+//------------------------------------------------------------------------------
+esp_err_t load_autoclave_mode_pid_parameters(PID_t *pid)
+{
+    nvs_handle_t h;
+    esp_err_t err = nvs_open("dc", NVS_READONLY, &h);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_autoclave_mode_pid_parameters: nvs_open failed err: %d", err);
+        return err;
+    }
+
+    size_t required_size = sizeof(PID_t);
+    err = nvs_get_blob(h, KEY_AUTOCLAVE_MODE_PID, pid, &required_size);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_autoclave_mode_pid_parameters: no saved angle flow direction err: %d", err);
+        nvs_close(h);
+        return err;
+    }
+
+    ESP_LOGI(TAG, "PID: Kp=%f Ki=%f Kd=%f | out=[%f..%f] | int=[%f..%f] | d_filt=%f",
+        pid->param.Kp, pid->param.Ki, pid->param.Kd,
+        pid->param.out_min, pid->param.out_max,
+        pid->param.integr_min, pid->param.integr_max,
+        pid->param.d_filter
+    );
+
+    nvs_close(h);
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t save_autoclave_mode_pid_parameters(const PID_t *pid)
+{
+    nvs_handle_t h;
+    esp_err_t err = nvs_open("dc", NVS_READWRITE, &h);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "save_autoclave_mode_pid_parameters: nvs_open failed err: %d", err);
+        return err;
+    }
+
+    err = nvs_set_blob(h, KEY_AUTOCLAVE_MODE_PID, pid, sizeof(PID_t));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "save_autoclave_mode_pid_parameters: nvs_set_blob failed err: %d", err);
+        nvs_close(h);
+        return err;
+    }
+
+    err = nvs_commit(h);
+    nvs_close(h);
+    
+    ESP_LOGI(TAG, "PID: Kp=%f Ki=%f Kd=%f | out=[%f..%f] | int=[%f..%f] | d_filt=%f",
+        pid->param.Kp, pid->param.Ki, pid->param.Kd,
+        pid->param.out_min, pid->param.out_max,
+        pid->param.integr_min, pid->param.integr_max,
+        pid->param.d_filter
+    );
 
     return err;
 }

@@ -24,6 +24,8 @@ typedef struct
         float integr_min;  // Минимальное значение интеграла (anti-windup)
         float integr_max;  // Максимальное значение интеграла (anti-windup)
 
+        float dt;           // Период вызова ПИД-регулятора, в секундах (например, 0.1f = 100 мс)
+
         // Фильтр производной части
         // D-компонента ПИД очень чувствительна к шуму измерения.
         // Чтобы уменьшить пики и дерганья, производная фильтруется скользящим средним:
@@ -41,6 +43,9 @@ typedef struct
         float prev_error;   // Предыдущая ошибка, нужна для расчёта производной
         float integral;     // Сумма интеграла ошибки
         float prev_deriv;   // Отфильтрованная производная ошибки
+        float p_term;       // Пропорциональная составляющая
+        float i_term;       // Интегральная составляющая
+        float d_term;       // Дифференциальная составляющая
     } status;
 } PID_t;
 //******************************************************************************
@@ -50,7 +55,7 @@ typedef struct
 //******************************************************************************
 // Секция прототипов глобальных функций
 //******************************************************************************
-inline void PID_Init(PID_t *pid, float Kp, float Ki, float Kd);
+void PID_Init(PID_t *pid, float Kp, float Ki, float Kd);
 float PID_calc(PID_t *pid, float setpoint, float measurement, float dt);
 
 // --- Kp ---
@@ -80,6 +85,15 @@ void PID_GetIntegralLimits(PID_t *pid, float *integr_min, float *integr_max);
 // --- Фильтр производной части ---
 void PID_SetDFilter(PID_t *pid, float d_filter);
 float PID_GetDFilter(PID_t *pid);
+
+// --- Текущие значения ---
+float PID_GetPterm(PID_t *pid);
+float PID_GetIterm(PID_t *pid);
+float PID_GetDterm(PID_t *pid);
+
+// --- dt ---
+void PID_SetDt(PID_t *pid, float dt);
+float PID_GetDt(PID_t *pid);
 //******************************************************************************
 // Секция определения макросов
 //******************************************************************************

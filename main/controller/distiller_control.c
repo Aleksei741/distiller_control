@@ -15,8 +15,12 @@
 #include <ten_ctrl.h>
 #include <buttons.h>
 #include <radiator_fan.h>
+#include <modbus_master.h>
+#include "flow_direction.h"
+#include "PID.h"
 
 #include <manual_control.h>
+#include <autoclave_mode.h>
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -70,6 +74,8 @@ void init_distiller_control()
     heater_init();
     init_button_reset_wifi_ap(); // Обязательно после heater_init
     init_fan();
+    modbus_rtu_master_init();
+    flow_direction_init();
     
     g_mutex = xSemaphoreCreateMutex();
     if (g_mutex == NULL) 
@@ -93,7 +99,7 @@ void distiller_control_task(void *arg)
     uint8_t flag_temperature = 0;
 
     memset(&status, 0, sizeof(status));
-    status.mode = DC_MANUAL_CONTROL;
+    status.mode = DC_MODE_MANUAL_CONTROL;
 
     while (1)
     {
@@ -119,18 +125,21 @@ void distiller_control_task(void *arg)
         {
             switch(cmd.command) 
             {
-                case DC_REQUEST_INIT_COLUMN_ROM:
+                case DC_COMMAND_REQUEST_INIT_COLUMN_ROM:
                     request_init_column_rom();
                     break;
-                case DC_REQUEST_INIT_KUBE_ROM:
+                case DC_COMMAND_REQUEST_INIT_KUBE_ROM:
                     request_init_kube_rom();
                     break;
-                case DC_SET_TEN_POWER:
-                    if(status.mode == DC_MANUAL_CONTROL)
-                        manual_control_set_heater_power(cmd.valuei);
+                case DC_COMMAND_SET_TEN_POWER:
+                    if(status.mode == DC_MODE_MANUAL_CONTROL)
+                    manual_control_set_heater_power(cmd.valuei);
                     break;
-                case DC_SET_MODE:
+                case DC_COMMAND_SET_MODE:
                     status.mode = (dc_mode_e)cmd.valuei;
+                    break;
+                case DC_COMMAND_SET_FLOW_DIRECTION:
+                    manual_control_set_flow_direction((uint8_t)cmd.valuei);
                     break;
                 default:
                     ESP_LOGW(TAG, "Unknown command: %d", cmd.command);
@@ -138,12 +147,8 @@ void distiller_control_task(void *arg)
             }
         }
 
-        if(status.mode == DC_MANUAL_CONTROL)
-            manual_control_process(&status);
-        else
-            manual_control_set_heater_power(0);
-        
-        
+        manual_control_process(&status);
+        autoclave_mode_process(&status);        
 
         vTaskDelay(pdMS_TO_TICKS(100));
     }
@@ -158,16 +163,35 @@ bool get_dc_parameters(dc_parametes_e param, void *out_params)
     if(out_params == NULL)
         return false;
 
-    if(param == DC_COLUMN_ROM)
+    if(param == DC_PARAM_COLUMN_ROM)
     {
         get_column_rom((uint8_t *)out_params);
         return true;
     }
-    else if(param == DC_KUBE_ROM)
+    else if(param == DC_PARAM_KUBE_ROM)
     {
         get_kube_rom((uint8_t *)out_params);
         return true;
     }
+    else if(param == DC_PARAM_FLOW_DIRECTION_ANGLE_1)
+    {
+        uint16_t angle = flow_direction_get_parameters_angle(POSITION_FLOW_DIRECTION_ANGLE_1);
+        *(uint16_t *)out_params = angle;
+        return true;
+    }
+    else if(param == DC_PARAM_FLOW_DIRECTION_ANGLE_2)
+    {
+        uint16_t angle = flow_direction_get_parameters_angle(POSITION_FLOW_DIRECTION_ANGLE_2);
+        *(uint16_t *)out_params = angle;
+        return true;
+    }
+    else if(param == DC_PARAM_FLOW_DIRECTION_ANGLE_3)
+    {
+        uint16_t angle = flow_direction_get_parameters_angle(POSITION_FLOW_DIRECTION_ANGLE_3);
+        *(uint16_t *)out_params = angle;
+        return true;
+    }
+
     return false;
 }
 //------------------------------------------------------------------------------
@@ -176,7 +200,25 @@ bool set_dc_parameters(dc_parametes_e param, void *in_params)
     if(in_params == NULL)
         return false;
 
-    // Заглушка - параметры только для чтения
+    if(param == DC_PARAM_FLOW_DIRECTION_ANGLE_1)
+    {
+        uint16_t angle = *(uint16_t *)in_params;
+        flow_direction_set_parameters_angle(POSITION_FLOW_DIRECTION_ANGLE_1, angle);
+        return true;
+    }
+    else if(param == DC_PARAM_FLOW_DIRECTION_ANGLE_2)
+    {
+        uint16_t angle = *(uint16_t *)in_params;
+        flow_direction_set_parameters_angle(POSITION_FLOW_DIRECTION_ANGLE_2, angle);
+        return true;
+    }
+    else if(param == DC_PARAM_FLOW_DIRECTION_ANGLE_3)
+    {
+        uint16_t angle = *(uint16_t *)in_params;
+        flow_direction_set_parameters_angle(POSITION_FLOW_DIRECTION_ANGLE_3, angle);
+        return true;
+    }
+        
     return false;
 }
 //------------------------------------------------------------------------------
@@ -200,9 +242,11 @@ void send_dc_command(dc_command_e command, void* value)
 
     if(value != NULL)
     {
-        if (command == DC_SET_TEN_POWER)
+        if (command == DC_COMMAND_SET_TEN_POWER)
             cmd.valuei = *(uint32_t*)value;
-        else if(command == DC_SET_MODE)
+        else if(command == DC_COMMAND_SET_MODE)
+            cmd.valuei = *(uint32_t*)value;
+        else if(command == DC_COMMAND_SET_FLOW_DIRECTION)
             cmd.valuei = *(uint32_t*)value;
     }
 

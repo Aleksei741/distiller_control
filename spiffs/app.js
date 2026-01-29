@@ -444,11 +444,13 @@ function switchSections(current = "control") {
     const controlSection = document.getElementById('control-section');
     const statisticSection = document.getElementById('statistic-section');
     const tempSensorSection = document.getElementById('temp-sensor-settings');
+    const folowDirectionSection = document.getElementById('flow-direction-settings');
 
     statusSection.style.display = 'none';
     controlSection.style.display = 'none';
     statisticSection.style.display = 'none';
     tempSensorSection.style.display = 'none';
+    folowDirectionSection.style.display = 'none';
     
     if (current == "control") {
         statusSection.style.display = 'block';
@@ -457,6 +459,8 @@ function switchSections(current = "control") {
         statisticSection.style.display = 'block';
     } else if (current == "tempsensor") {
         tempSensorSection.style.display = 'block';
+    } else if (current == "flowdirection") {
+        folowDirectionSection.style.display = 'block';
     }
 }
 
@@ -680,4 +684,132 @@ async function updateTempSensorROM() {
     document.getElementById('temp-sensor-column-rom').innerText = rom.column;
 }
 //==========================================================================
-//Калибровка 220 В
+// Настройка положения направления потока
+async function setFollowDirectionSettings(direction, value) 
+{    
+    try
+    {
+        if(value < 0 || value > 359)
+            value = 359;
+
+        const url = `/api/flow/set_parameters/?posotion=${direction}&angle=${value}`;
+        console.log("Установка параметров направления потока:", url);
+
+        const resp = await fetch(url);
+        console.log("Статус ответа:", resp.status);
+
+        if (!resp.ok) 
+        {
+            console.error("HTTP ошибка:", resp.status, resp.statusText);
+            return false;
+        }        
+    } 
+    catch (e) 
+    {
+        console.error("Ошибка при настройке управления потоком:", e);
+        return false;
+    }
+
+    return true;
+}
+
+async function getFollowDirectionSettings() 
+{
+    try
+    {
+        const url = `/api/flow/get_parameters`;
+        console.log("Получение параметров направления потока:", url);
+
+        const resp = await fetch(url);
+        console.log("Статус ответа:", resp.status);
+
+        if (!resp.ok) 
+        {
+            console.error("HTTP ошибка:", resp.status, resp.statusText);
+            return false;
+        }
+
+        const arrayBuffer = await resp.arrayBuffer();
+        const byteLength = arrayBuffer.byteLength;
+
+        if(byteLength != 12)
+        {
+            console.error("Некорректная длина данных:", byteLength);
+            return false;
+        }
+
+        const dataView = new DataView(arrayBuffer);
+        const angle1 = dataView.getUint32(0, true);
+        const angle2 = dataView.getUint32(4, true);
+        const angle3 = dataView.getUint32(8, true);
+        return { angle1, angle2, angle3 };
+    } 
+    catch (e) 
+    {
+        console.error("Ошибка при получении настроек управления потоком:", e);
+        return false;
+    }
+}
+
+isUserSetFlowDirection = true;
+isPauseSetFlowDirection = false;
+// Обработчики
+document.getElementById('flow-direction-position1-angle').addEventListener('change', (e) => 
+{        
+    // Вызываем только если изменение от пользователя
+    if (isUserSetFlowDirection) 
+    {
+        const position = document.getElementById('flow-direction-position1-angle').value;
+        setFollowDirectionSettings(1, position);
+        isPauseSetFlowDirection = true;
+    }
+});
+document.getElementById('flow-direction-position2-angle').addEventListener('change', (e) => 
+{        
+    // Вызываем только если изменение от пользователя
+    if (isUserSetFlowDirection) 
+    {
+        const position = document.getElementById('flow-direction-position2-angle').value;
+        setFollowDirectionSettings(2, position);
+        isPauseSetFlowDirection = true;
+    }
+});
+document.getElementById('flow-direction-position3-angle').addEventListener('change', (e) => 
+{        
+    // Вызываем только если изменение от пользователя
+    if (isUserSetFlowDirection) 
+    {
+        const position = document.getElementById('flow-direction-position3-angle').value;
+        setFollowDirectionSettings(3, position);
+        isPauseSetFlowDirection = true;
+    }
+});
+
+// При загрузке страницы
+document.addEventListener('DOMContentLoaded', function() 
+{
+    updateFolowDirection();    
+    setInterval(updateFolowDirection, 1500);
+});
+
+// Обновить ROM датчика температуры
+async function updateFolowDirection() 
+{
+    const panel = document.getElementById('flow-direction-settings');
+    if (panel && getComputedStyle(panel).display !== 'none') return; // Элемент не отображается
+        
+    const angles = await getFollowDirectionSettings();
+    console.log('Обновление углов направления потока:', angles);
+    if (!angles) return; // ошибка запроса
+
+    isUserSetFlowDirection = false;
+    if(!isPauseSetFlowDirection)
+    {
+        document.getElementById('flow-direction-position1-angle').value = angles.angle1;
+        document.getElementById('flow-direction-position2-angle').value = angles.angle2;
+        document.getElementById('flow-direction-position3-angle').value = angles.angle3;
+    }
+    isPauseSetFlowDirection = false;
+    isUserSetFlowDirection = true;
+}
+//==========================================================================

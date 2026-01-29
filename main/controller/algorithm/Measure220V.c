@@ -98,7 +98,7 @@ static void voltage_done_cb(uint16_t data)
 //------------------------------------------------------------------------------
 void Measure220V_init(void)
 {
-    meas_220V_settings_t calib;
+    parameters_meas_220V_settings_t calib;
     if(load_calibration_220V(&calib) == ESP_OK)
     {
         zero_voltage_220V = (double)calib.zero_lvl;
@@ -170,7 +170,7 @@ void voltage_220V_calculate_task(void *arg)
         //calibration
         else if(flag_calib) 
         {
-            meas_220V_settings_t calib;
+            parameters_meas_220V_settings_t calib;
             if (xSemaphoreTake(g_mutex, portMAX_DELAY)) 
             {
                 esr.cnt = 0; 

@@ -2,20 +2,20 @@
 //******************************************************************************
 // Секция include
 //******************************************************************************
-#include "parameters.h"
+#include <stdint.h>
 //******************************************************************************
 // Секция определения констант
 //******************************************************************************
-
+typedef enum
+{
+    POSITION_FLOW_DIRECTION_ANGLE_1 = 0,
+    POSITION_FLOW_DIRECTION_ANGLE_2,
+    POSITION_FLOW_DIRECTION_ANGLE_3
+} position_flow_direction_e;
 //******************************************************************************
 // Секция определения типов
 //******************************************************************************
-#define MAX_SCAN_APS 20
-typedef struct {
-    char ssid[32];
-    int8_t rssi;
-    uint8_t authmode;
-} scanned_ap_info_t;
+
 //******************************************************************************
 // Секция определения глобальных переменных
 //******************************************************************************
@@ -23,13 +23,10 @@ typedef struct {
 //******************************************************************************
 // Секция прототипов глобальных функций
 //******************************************************************************
-void wifi_init(void);
-void wifi_start_ap_sta(const parameters_wifi_settings_t *cfg_sta, const parameters_wifi_settings_t *cfg_ap);
-void wifi_reinit_sta(const parameters_wifi_settings_t *cfg_sta);
-void wifi_sta_request_scan(void);
-int wifi_sta_is_scan_done(void);
-int get_wifi_sta_scan_results(scanned_ap_info_t *aps);
-void wifi_reinit_ap(const parameters_wifi_settings_t *cfg_ap);
+void flow_direction_init(void);
+void flow_direction_set(position_flow_direction_e position);
+void flow_direction_set_parameters_angle(position_flow_direction_e position, uint16_t angle);
+uint16_t flow_direction_get_parameters_angle(position_flow_direction_e position);
 //******************************************************************************
 // Секция определения макросов
 //******************************************************************************

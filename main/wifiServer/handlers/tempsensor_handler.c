@@ -46,7 +46,7 @@ esp_err_t tempsensor_rom_handler(httpd_req_t *req)
     httpd_resp_sendstr_chunk(req, "{");
 
     // Column
-    get_dc_parameters(DC_COLUMN_ROM, rom);
+    get_dc_parameters(DC_PARAM_COLUMN_ROM, rom);
     snprintf(buf, sizeof(buf),
              "\"column\": \"0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\"",
              rom[0], rom[1], rom[2], rom[3], rom[4], rom[5], rom[6], rom[7]);
@@ -55,7 +55,7 @@ esp_err_t tempsensor_rom_handler(httpd_req_t *req)
     httpd_resp_sendstr_chunk(req, ", ");
 
     // Kube
-    get_dc_parameters(DC_KUBE_ROM, rom);
+    get_dc_parameters(DC_PARAM_KUBE_ROM, rom);
     snprintf(buf, sizeof(buf),
              "\"kube\": \"0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\"",
              rom[0], rom[1], rom[2], rom[3], rom[4], rom[5], rom[6], rom[7]);
@@ -69,7 +69,7 @@ esp_err_t tempsensor_rom_handler(httpd_req_t *req)
 //------------------------------------------------------------------------------
 esp_err_t tempsensor_set_rom_cube_handler(httpd_req_t *req)
 {
-    send_dc_command(DC_REQUEST_INIT_KUBE_ROM, NULL);
+    send_dc_command(DC_COMMAND_REQUEST_INIT_KUBE_ROM, NULL);
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, "{\"status\": \"kube ROM set\"}");
     return ESP_OK;
@@ -77,7 +77,7 @@ esp_err_t tempsensor_set_rom_cube_handler(httpd_req_t *req)
 //------------------------------------------------------------------------------
 esp_err_t tempsensor_set_rom_column_handler(httpd_req_t *req)
 {
-    send_dc_command(DC_REQUEST_INIT_COLUMN_ROM, NULL);    
+    send_dc_command(DC_COMMAND_REQUEST_INIT_COLUMN_ROM, NULL);    
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, "{\"status\": \"column ROM set\"}");
     return ESP_OK;

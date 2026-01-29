@@ -87,7 +87,7 @@ esp_err_t set_ten_power_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
     power = strtoul(str_index, NULL, 10);
-    send_dc_command(DC_SET_TEN_POWER, &power);
+    send_dc_command(DC_COMMAND_SET_TEN_POWER, &power);
 
     httpd_resp_set_hdr(req, "Connection", "close"); 
     httpd_resp_send(req, NULL, 0); // отправка пустого тела

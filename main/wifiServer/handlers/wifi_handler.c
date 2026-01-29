@@ -89,7 +89,7 @@ esp_err_t wifi_set_ap_handler(httpd_req_t *req)
     ESP_LOGI(TAG, "SSID: %s", ssid);
     ESP_LOGI(TAG, "PASS: %s", pass);
 
-    wifi_settings_t wifi_settings;
+    parameters_wifi_settings_t wifi_settings;
     strncpy(wifi_settings.ssid, ssid, sizeof(wifi_settings.ssid) - 1);
     strncpy(wifi_settings.pass, pass, sizeof(wifi_settings.pass) - 1);      
 
@@ -151,7 +151,7 @@ esp_err_t wifi_set_sta_handler(httpd_req_t *req)
     ESP_LOGI(TAG, "SSID: %s", ssid);
     ESP_LOGI(TAG, "PASS: %s", pass);
 
-    wifi_settings_t wifi_settings;
+    parameters_wifi_settings_t wifi_settings;
     strncpy(wifi_settings.ssid, ssid, sizeof(wifi_settings.ssid) - 1);
     strncpy(wifi_settings.pass, pass, sizeof(wifi_settings.pass) - 1);      
 

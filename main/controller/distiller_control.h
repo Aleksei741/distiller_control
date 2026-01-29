@@ -4,6 +4,8 @@
 //******************************************************************************
 #include <stdbool.h>
 #include <stdint.h>
+
+#include "flow_direction.h"
 //******************************************************************************
 // Секция определения констант
 //******************************************************************************
@@ -13,34 +15,40 @@
 //******************************************************************************
 typedef enum
 {
-    DC_MANUAL_CONTROL,       // Ручное управление
-    DC_WASH_DISTILLATION,    // Авто: перегон браги → спирт сырец (first distillation / wash run)
-    DC_SPIRIT_RECTIFICATION  // Авто: перегон спиртсырца → очищенный спирт (rectification / spirit run)
+    DC_MODE_MANUAL_CONTROL,       // Ручное управление
+    DC_MODE_WASH_DISTILLATION,    // Авто: перегон браги → спирт сырец (first distillation / wash run)
+    DC_MODE_SPIRIT_RECTIFICATION, // Авто: перегон спиртсырца → очищенный спирт (rectification / spirit run)
+    DC_MODE_AUTOCLAVE             // Авто: автоклавный режим
 } dc_mode_e;
 
 typedef enum
 {
-    DC_REQUEST_INIT_COLUMN_ROM,
-    DC_REQUEST_INIT_KUBE_ROM,
-    DC_SET_MODE,
-    DC_SET_TEN_POWER,
+    DC_COMMAND_REQUEST_INIT_COLUMN_ROM,
+    DC_COMMAND_REQUEST_INIT_KUBE_ROM,
+    DC_COMMAND_SET_MODE,
+    DC_COMMAND_SET_TEN_POWER,
+    DC_COMMAND_SET_FLOW_DIRECTION,
 } dc_command_e;
 
 typedef enum
 {
-    DC_COLUMN_ROM,
-    DC_KUBE_ROM,
+    DC_PARAM_COLUMN_ROM,
+    DC_PARAM_KUBE_ROM,
+    DC_PARAM_FLOW_DIRECTION_ANGLE_1,
+    DC_PARAM_FLOW_DIRECTION_ANGLE_2,
+    DC_PARAM_FLOW_DIRECTION_ANGLE_3,
 } dc_parametes_e;
 
 typedef struct
 {
     dc_mode_e mode;
+    position_flow_direction_e flow_direction;
     float temperature_column;
     float temperature_kube;
     float temperature_radiator;
     float ten_power;
     float voltage_220V;
-    uint8_t fan;
+    uint8_t fan;    
 } dc_status_t;
 
 typedef struct 

@@ -3,6 +3,9 @@
 //******************************************************************************
 #include "modbus_master.h"
 #include "modbus_rtu_holding_registers.h"
+
+#include "parameters.h"
+
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
@@ -80,13 +83,13 @@ esp_err_t modbus_rtu_master_init(void)
     return ESP_OK;
 }
 //------------------------------------------------------------------------------
-void modbus_master_set_write_params(uint16_t value, modbus_param_t param)
+void modbus_master_set_value(modbus_param_t param, uint16_t value)
 {
     if (modbus_params_mutex == NULL) return;
 
     if (xSemaphoreTake(modbus_params_mutex, pdMS_TO_TICKS(10)) == pdTRUE) 
     {
-        if(param == MODBUS_HOSE_ANGLE)
+        if(param == MODBUS_FLOW_DIRECTION_ANGLE)
         {
             current_params.angle = value;
         }        
