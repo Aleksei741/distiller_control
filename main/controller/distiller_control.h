@@ -27,6 +27,7 @@ typedef enum
     DC_COMMAND_REQUEST_INIT_KUBE_ROM,
     DC_COMMAND_SET_MODE,
     DC_COMMAND_SET_TEN_POWER,
+    DC_COMMAND_SET_CUBE_TEMPERATURE,
     DC_COMMAND_SET_FLOW_DIRECTION,
 } dc_command_e;
 
@@ -37,6 +38,7 @@ typedef enum
     DC_PARAM_FLOW_DIRECTION_ANGLE_1,
     DC_PARAM_FLOW_DIRECTION_ANGLE_2,
     DC_PARAM_FLOW_DIRECTION_ANGLE_3,
+    DC_PARAM_AUTOCLAVE_MODE_PID_PARAMETERS,
 } dc_parametes_e;
 
 typedef struct
@@ -48,7 +50,7 @@ typedef struct
     float temperature_radiator;
     float ten_power;
     float voltage_220V;
-    uint8_t fan;    
+    uint8_t fan;
 } dc_status_t;
 
 typedef struct 

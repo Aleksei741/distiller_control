@@ -1,7 +1,7 @@
 set(SOURCES
     main.c
     controller/distiller_control.c
-    controller/manual_control.c
+    controller/manual_mode.c
     controller/autoclave_mode.c
     controller/algorithm/PID.c    
     controller/algorithm/Measure220V.c
@@ -17,6 +17,7 @@ set(SOURCES
     wifiServer/handlers/tempsensor_handler.c
     wifiServer/handlers/wifi_handler.c
     wifiServer/handlers/flow_direction_handler.c
+    wifiServer/handlers/api_PID_handler.c
     periferial/led.c
     periferial/temperature_sensor.c
     periferial/statistic.c

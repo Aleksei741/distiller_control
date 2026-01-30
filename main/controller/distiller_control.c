@@ -19,7 +19,7 @@
 #include "flow_direction.h"
 #include "PID.h"
 
-#include <manual_control.h>
+#include <manual_mode.h>
 #include <autoclave_mode.h>
 
 #include "esp_log.h"
@@ -133,13 +133,17 @@ void distiller_control_task(void *arg)
                     break;
                 case DC_COMMAND_SET_TEN_POWER:
                     if(status.mode == DC_MODE_MANUAL_CONTROL)
-                    manual_control_set_heater_power(cmd.valuei);
+                        manual_mode_set_heater_power(cmd.valuei);
                     break;
                 case DC_COMMAND_SET_MODE:
                     status.mode = (dc_mode_e)cmd.valuei;
                     break;
                 case DC_COMMAND_SET_FLOW_DIRECTION:
-                    manual_control_set_flow_direction((uint8_t)cmd.valuei);
+                    manual_mode_set_flow_direction((uint8_t)cmd.valuei);
+                    break;
+                case DC_COMMAND_SET_CUBE_TEMPERATURE:
+                    if(status.mode == DC_MODE_AUTOCLAVE)
+                        autoclave_mode_set_need_temperature(cmd.valuef);
                     break;
                 default:
                     ESP_LOGW(TAG, "Unknown command: %d", cmd.command);
@@ -147,7 +151,7 @@ void distiller_control_task(void *arg)
             }
         }
 
-        manual_control_process(&status);
+        manual_mode_process(&status);
         autoclave_mode_process(&status);        
 
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -191,6 +195,13 @@ bool get_dc_parameters(dc_parametes_e param, void *out_params)
         *(uint16_t *)out_params = angle;
         return true;
     }
+    else if(param == DC_PARAM_AUTOCLAVE_MODE_PID_PARAMETERS)
+    {
+        PID_t pid = {0};
+        autoclave_mode_get_pid(&pid);
+        memcpy(out_params, &pid.param, sizeof(PID_t));
+        return true;
+    }
 
     return false;
 }
@@ -216,6 +227,13 @@ bool set_dc_parameters(dc_parametes_e param, void *in_params)
     {
         uint16_t angle = *(uint16_t *)in_params;
         flow_direction_set_parameters_angle(POSITION_FLOW_DIRECTION_ANGLE_3, angle);
+        return true;
+    }
+    else if(param == DC_PARAM_AUTOCLAVE_MODE_PID_PARAMETERS)
+    {
+        PID_t pid = {0};
+        memcpy(&pid.param, in_params, sizeof(PID_t));
+        autoclave_mode_set_parameters_pid(&pid);
         return true;
     }
         
@@ -248,6 +266,8 @@ void send_dc_command(dc_command_e command, void* value)
             cmd.valuei = *(uint32_t*)value;
         else if(command == DC_COMMAND_SET_FLOW_DIRECTION)
             cmd.valuei = *(uint32_t*)value;
+        else if(command == DC_COMMAND_SET_CUBE_TEMPERATURE)
+            cmd.valuef = *(float*)value;
     }
 
     if (xQueueSend(qCommand, &cmd, 0) != pdTRUE) {

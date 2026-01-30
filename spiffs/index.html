@@ -181,44 +181,37 @@
         </section>
         
         <!-- style="display:none;"-->
+        <!-- Настройки коэффициентов -->
         <section class="pid-controller" id="pid-autoclav-section">
             <h2>ПИД-регулятор автоклав</h2>
 
             <!-- Текущие измерения -->
             <div class="pid-current-values">
-                <p>Текущая температура: <span class="pid-temp">-- °C</span></p>
-                <p>Мощность ТЭНа: <span class="pid-heater-power">-- %</span></p>
-                
+                <p>Текущая температура: <span class="pid-meas">-- °C</span></p>
+                <p>Требуемая температура: <span class="pid-set">-- °C</span></p>
+                <p>Выход ПИД: <span class="pid-out">-- %</span></p>
             </div>
 
             <!-- Компоненты ПИД -->
             <div class="pid-components">
-                <p>Пропорциональная составляющая (P): <span class="pidd-autoclav-p">-- %</span></p>
-                <p>Интегральная составляющая (I): <span class="pidd-autoclav-i">-- %</span></p>
-                <p>Дифференциальная составляющая (D): <span class="pidd-autoclav-d">-- %</span></p>
+                <p>P: <span class="pid-p">--</span></p>
+                <p>I: <span class="pid-i">--</span></p>
+                <p>D: <span class="pid-d">--</span></p>
             </div>
 
-            <!-- Настройки коэффициентов -->
-            <form class="pid-settings-form">
+            <!-- Настройки PID -->
+            <form class="pid-settings-form" autocomplete="off">
                 <fieldset>
-                <legend>Коэффициенты</legend>
-
-                <label>
-                    Kp:
-                    <input type="number" class="kp" step="0.01" required>
-                </label>
-
-                <label>
-                    Ki:
-                    <input type="number" class="ki" step="0.01" required>
-                </label>
-
-                <label>
-                    Kd:
-                    <input type="number" class="kd" step="0.01" required>
-                </label>
-
-                <button type="submit">Обновить</button>
+                    <legend>Параметры ПИД регулятора</legend>
+                    <label>Kp: <input type="number" step="0.01" data-param="Kp" onchange="setPIDSettings('autoclave_mode', this.dataset.param, this.value)" required></label>
+                    <label>Ki: <input type="number" step="0.01" data-param="Ki" onchange="setPIDSettings('autoclave_mode', this.dataset.param, this.value)" required></label>
+                    <label>Kd: <input type="number" step="0.01" data-param="Kd" onchange="setPIDSettings('autoclave_mode', this.dataset.param, this.value)" required></label>
+                    <label>dt: <input type="number" step="0.01" data-param="dt" onchange="setPIDSettings('autoclave_mode', this.dataset.param, this.value)" required></label>
+                    <label>Минимальное значение выхода: <input type="number" step="0.01" data-param="out_min" onchange="setPIDSettings('autoclave_mode', this.dataset.param, this.value)" required></label>
+                    <label>Максимальное значение выхода: <input type="number" step="0.01" data-param="out_max" onchange="setPIDSettings('autoclave_mode', this.dataset.param, this.value)" required></label>
+                    <label>Минимум интеграла: <input type="number" step="0.01" data-param="integr_min" onchange="setPIDSettings('autoclave_mode', this.dataset.param, this.value)" required></label>
+                    <label>Максимум интеграла: <input type="number" step="0.01" data-param="integr_max" onchange="setPIDSettings('autoclave_mode', this.dataset.param, this.value)" required></label>
+                    <label>Фильтр D: <input type="number" step="0.01" data-param="d_filter" onchange="setPIDSettings('autoclave_mode', this.dataset.param, this.value)" required></label>
                 </fieldset>
             </form>
         </section>

@@ -27,7 +27,7 @@
 // Local Variable
 //------------------------------------------------------------------------------
 static char *TAG = "[autoclave_mode]";
-static uint8_t need_temperature = 0;
+static float need_temperature = 0;
 static PID_t pid_controller;
 static SemaphoreHandle_t g_mutex = NULL;
 //------------------------------------------------------------------------------
@@ -41,14 +41,14 @@ bool autoclave_mode_init();
 //******************************************************************************
 // Function
 //******************************************************************************
-void autoclave_mode_set_need_temperature(uint8_t p)
+void autoclave_mode_set_need_temperature(float p)
 {
     if(g_mutex == NULL)
         return;
 
-    if(p > 130) p = 130;
+    if(p > 130.0) p = 130.0;
     need_temperature = p;
-    ESP_LOGI(TAG, "Set autoclave mode temperature to: %d C", p);
+    ESP_LOGI(TAG, "Set autoclave mode temperature to: %.2f C", p);
 }
 //------------------------------------------------------------------------------
 void autoclave_mode_set_parameters_pid(const PID_t *pid)
@@ -108,7 +108,7 @@ void autoclave_mode_process(dc_status_t* status)
             pid_last_ticks = ticks; 
 
             float current_temperature = status->temperature_kube;
-            float output = PID_calc(&pid_controller, (float)need_temperature, current_temperature, dt);
+            float output = PID_calc(&pid_controller, need_temperature, current_temperature, dt);
 
             ESP_LOGI(TAG, "Autoclave mode: need_temp=%dC current_temp=%.2fC heater_power=%.2f%%",
                 need_temperature, current_temperature, output);

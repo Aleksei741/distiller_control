@@ -36,6 +36,9 @@ float PID_calc(PID_t *pid, float setpoint, float measurement, float dt)
 {
     if (dt <= 0) dt = 0.001f;
 
+    pid->status.setpoint = setpoint;
+    pid->status.measurement = measurement;
+
     float error = setpoint - measurement;
 
     // --- Интеграл (c анти-насыщением)
@@ -58,6 +61,8 @@ float PID_calc(PID_t *pid, float setpoint, float measurement, float dt)
     // --- Ограничение выхода
     if (out > pid->param.out_max) out = pid->param.out_max;
     if (out < pid->param.out_min) out = pid->param.out_min;
+
+    pid->status.output = out;
 
     return out;
 }

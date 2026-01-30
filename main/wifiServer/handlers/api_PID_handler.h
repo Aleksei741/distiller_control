@@ -18,10 +18,8 @@
 //******************************************************************************
 // Секция прототипов глобальных функций
 //******************************************************************************
-esp_err_t get_status_distiler_control_handler(httpd_req_t *req);
-esp_err_t set_ten_power_handler(httpd_req_t *req);
-esp_err_t set_cube_temperature_handler(httpd_req_t *req);
-esp_err_t set_mode_distiler_control_handler(httpd_req_t *req);
+esp_err_t api_set_PID_handler(httpd_req_t *req);
+esp_err_t autoclave_mode_get_PID_handler(httpd_req_t *req);
 //******************************************************************************
 // Секция определения макросов
 //******************************************************************************

@@ -25,7 +25,7 @@ typedef enum
 // Секция прототипов глобальных функций
 //******************************************************************************
 void autoclave_mode_process(dc_status_t* status);
-void autoclave_mode_set_need_temperature(uint8_t p);
+void autoclave_mode_set_need_temperature(float p);
 void autoclave_mode_set_parameters_pid(const PID_t *pid);
 void autoclave_mode_get_pid(PID_t *pid);
 //******************************************************************************

@@ -813,3 +813,139 @@ async function updateFolowDirection()
     isUserSetFlowDirection = true;
 }
 //==========================================================================
+// Настройка PID параметров 
+async function setPIDSettings(module, parameter, value)
+{
+    console.log(module, parameter, value);
+    try
+    {
+        const url = `/api/PID/set/?module=${module}&parameter=${parameter}&value=${value}`;
+        console.log("Установка PID параметров:", url);
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        console.log("PID параметры успешно установлены");
+        return true;
+    }
+    catch (e)
+    {
+        console.error("Ошибка при настройке PID параметров:", e);
+        return false;
+    }
+}
+
+async function requestGetPIDParameters(module)
+{
+    try
+    {
+        const url = `/api/PID/get/?module=${module}`;
+        console.log("Получение параметров ПИД регулятора модуля ", module, ": ", url);
+
+        const resp = await fetch(url);
+        console.log("Статус ответа:", resp.status);
+
+        if (!resp.ok) 
+        {
+            console.error("HTTP ошибка:", resp.status, resp.statusText);
+            return false;
+        }
+
+        const arrayBuffer = await resp.arrayBuffer();
+        const byteLength = arrayBuffer.byteLength;
+
+        if(byteLength != 68)
+        {
+            console.error("Некорректная длина данных:", byteLength);
+            return false;
+        }
+
+        const pid = {
+            param: {
+                Kp: dataView.getFloat32(0, true),
+                Ki: dataView.getFloat32(4, true),
+                Kd: dataView.getFloat32(8, true),
+                out_min: dataView.getFloat32(12, true),
+                out_max: dataView.getFloat32(16, true),
+                dt: dataView.getFloat32(20, true),
+                integr_min: dataView.getFloat32(24, true),
+                integr_max: dataView.getFloat32(28, true),
+                d_filter: dataView.getFloat32(32, true)
+            },
+            status: {
+                p_term: dataView.getFloat32(36, true),
+                i_term: dataView.getFloat32(40, true),
+                d_term: dataView.getFloat32(44, true),
+                integral: dataView.getFloat32(48, true),
+                prev_error: dataView.getFloat32(52, true),
+                prev_deriv: dataView.getFloat32(56, true),
+                setpoint: dataView.getFloat32(60, true),
+                measurement: dataView.getFloat32(64, true),
+                output: dataView.getFloat32(68, true)
+            }
+        };
+        return pid;
+    } 
+    catch (e) 
+    {
+        console.error("Ошибка при получении настроек управления потоком:", e);
+        return false;
+    }
+}
+
+function GUI_SetPIDAutoclave(section_name, param, value) 
+{
+    const section = document.getElementById(section_name);
+    if (!section) return;
+
+    
+
+    // Обновляем input
+    const input = section.querySelector(`input[data-param="${param}"]`);
+    if (input) 
+    {
+        input.value = value;
+        return;
+    }
+
+    // Обновляем текстовые элементы
+    switch (param) 
+    {
+        case "p_term":    section.querySelector(".pid-p").textContent = value.toFixed(2); break;
+        case "i_term":    section.querySelector(".pid-i").textContent = value.toFixed(2); break;
+        case "d_term":    section.querySelector(".pid-d").textContent = value.toFixed(2); break;
+        case "setpoint":  section.querySelector(".pid-set").textContent = value.toFixed(1) + " °C"; break;
+        case "measurement": section.querySelector(".pid-meas").textContent = value.toFixed(1) + " °C"; break;
+        case "heater_output": section.querySelector(".pid-out").textContent = value.toFixed(1) + " %"; break;
+    }
+}
+
+function GUI_SetPIDAutoclave(section_name, param, value)
+{
+    document.querySelector(`#${section_name} input[data-param="${param}"]`).value = value;
+}
+
+async function getPIDParameters(module) 
+{
+    pid = requestGetPIDParameters("autoclave_mode");
+
+    GUI_SetPIDAutoclave("pid-autoclave", "Kp", pid.param.Kp);
+    GUI_SetPIDAutoclave("pid-autoclave", "Ki", pid.param.Ki);
+    GUI_SetPIDAutoclave("pid-autoclave", "Kd", pid.param.Kd);
+    GUI_SetPIDAutoclave("pid-autoclave", "out_min", pid.param.out_min);
+    GUI_SetPIDAutoclave("pid-autoclave", "out_max", pid.param.out_max);
+    GUI_SetPIDAutoclave("pid-autoclave", "dt", pid.param.dt);
+    GUI_SetPIDAutoclave("pid-autoclave", "integr_min", pid.param.integr_min);
+    GUI_SetPIDAutoclave("pid-autoclave", "integr_max", pid.param.integr_max);
+    GUI_SetPIDAutoclave("pid-autoclave", "d_filter", pid.param.d_filter);
+}
+
+
+
+async function getFollowDirectionSettings() 
+{
+    
+}
+
+
+//==========================================================================

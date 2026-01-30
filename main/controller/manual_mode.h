@@ -20,9 +20,9 @@
 //******************************************************************************
 // Секция прототипов глобальных функций
 //******************************************************************************
-void manual_control_process(dc_status_t* status);
-void manual_control_set_heater_power(uint8_t p);
-void manual_control_set_flow_direction(uint8_t p);
+void manual_mode_process(dc_status_t* status);
+void manual_mode_set_heater_power(uint8_t p);
+void manual_mode_set_flow_direction(uint8_t p);
 //******************************************************************************
 // Секция определения макросов
 //******************************************************************************

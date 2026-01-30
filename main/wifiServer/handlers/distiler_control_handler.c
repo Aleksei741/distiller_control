@@ -95,3 +95,63 @@ esp_err_t set_ten_power_handler(httpd_req_t *req)
     return ESP_OK;
 }
 //------------------------------------------------------------------------------
+esp_err_t set_cube_temperature_handler(httpd_req_t *req)
+{
+    char query[128] = {0};
+    char str_index[32] = {0};
+    float temperature = 0;
+
+    // Прочитать query
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "set_cube_temperature_handler Bad query");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "set_cube_temperature_handler Cube temperature query: %s", query);
+
+    // Извлечь temperature
+    if (httpd_query_key_value(query, "temperature", str_index, sizeof(str_index)) != ESP_OK) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "set_cube_temperature_handler Missing temperature");
+        return ESP_FAIL;
+    }
+    temperature = (float)strtod(str_index, NULL);
+    send_dc_command(DC_COMMAND_SET_CUBE_TEMPERATURE, &temperature);
+
+    httpd_resp_set_hdr(req, "Connection", "close"); 
+    httpd_resp_send(req, NULL, 0); // отправка пустого тела
+
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------
+esp_err_t set_mode_distiler_control_handler(httpd_req_t *req)
+{
+    char query[128] = {0};
+    char str_index[32] = {0};
+    uint32_t mode = 0;
+
+    // Прочитать query
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Bad query");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "set_mode_distiler_control_handler query: %s", query);
+
+    // Извлечь mode
+    if (httpd_query_key_value(query, "mode", str_index, sizeof(str_index)) != ESP_OK) 
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing mode");
+        return ESP_FAIL;
+    }
+    mode = strtoul(str_index, NULL, 10);
+    send_dc_command(DC_COMMAND_SET_MODE, &mode);
+
+    httpd_resp_set_hdr(req, "Connection", "close"); 
+    httpd_resp_send(req, NULL, 0); // отправка пустого тела
+
+    return ESP_OK;
+}
+//------------------------------------------------------------------------------

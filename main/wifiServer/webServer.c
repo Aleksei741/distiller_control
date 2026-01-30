@@ -17,6 +17,7 @@
 #include "tempsensor_handler.h"
 #include "wifi_handler.h"
 #include "flow_direction_handler.h"
+#include "api_PID_handler.h"
 //******************************************************************************
 // Cinstants
 //******************************************************************************
@@ -118,8 +119,12 @@ httpd_handle_t start_webserver(void)
         // Регистрация URI обработчика для получения статуса управления дистиллятором
         httpd_uri_t distiller_status_uri = { .uri="/api/distiller/status", .method=HTTP_GET, .handler=get_status_distiler_control_handler };
         httpd_uri_t distiller_ten_uri = { .uri="/api/distiller/ten", .method=HTTP_GET, .handler=set_ten_power_handler };
+        httpd_uri_t distiller_cube_temperature_uri = { .uri="/api/distiller/cube_temperature", .method=HTTP_GET, .handler=set_cube_temperature_handler };
+        httpd_uri_t distiller_mode_uri = { .uri="/api/distiller/mode", .method=HTTP_GET, .handler=set_cube_temperature_handler };
         httpd_register_uri_handler(server, &distiller_status_uri);
         httpd_register_uri_handler(server, &distiller_ten_uri);
+        httpd_register_uri_handler(server, &distiller_cube_temperature_uri);
+        httpd_register_uri_handler(server, &distiller_mode_uri);
 
         // Регистрация URI обработчиков для управления положением направления потока
         httpd_uri_t set_position_flow_direction_uri = { .uri="/api/flow/position", .method=HTTP_GET, .handler=set_position_flow_direction_handler };
@@ -128,6 +133,12 @@ httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &set_position_flow_direction_uri);
         httpd_register_uri_handler(server, &set_parameters_flow_direction_uri);
         httpd_register_uri_handler(server, &get_parameters_flow_direction_uri);
+
+        // Регистрация URI обработчиков для управления PID параметрами автоклавного режима
+        httpd_uri_t autoclave_mode_set_PID_uri = { .uri="/api/PID/set", .method=HTTP_GET, .handler=api_set_PID_handler };
+        httpd_uri_t autoclave_mode_get_PID_uri = { .uri="/api/PID/get", .method=HTTP_GET, .handler=autoclave_mode_get_PID_handler };
+        httpd_register_uri_handler(server, &autoclave_mode_set_PID_uri);
+        httpd_register_uri_handler(server, &autoclave_mode_get_PID_uri);    
 
         httpd_register_uri_handler(server, &(httpd_uri_t){.uri = "*", .method = HTTP_GET, .handler = not_found_uri_handle});
         httpd_register_uri_handler(server, &(httpd_uri_t){.uri = "*", .method = HTTP_HEAD, .handler = not_found_uri_handle});
