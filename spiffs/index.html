@@ -68,6 +68,7 @@
                 <div class="submenu">
                     <div onclick="switchSections('tempsensor')">Датчики температуры</div>
                     <div onclick="switchSections('flowdirection')">Направление шланга</div>
+                    <div onclick="switchSections('pid-autoclave')">ПИД автоклав</div>
                     <div onclick="beep(2000, 10)">beep</div>
                 </div>
             </div>
@@ -77,70 +78,95 @@
     <div class="container">  
         <section id="status-section">
             <svg id="column-svg" viewBox="0 0 300 520" style="width:260px; display:block; margin:0 auto;">         
-                <!-- Градиент для температуры колонны -->
+                <!-- Градиенты для колонны -->
                 <defs>
-                    <linearGradient id="tempColumnGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-                        <stop offset="0%" style="stop-color:blue;stop-opacity:1" />
-                        <stop offset="50%" style="stop-color:green;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:red;stop-opacity:1" />
+                    <!-- Единый градиент для трубы, привязан к координатам SVG -->
+                    <linearGradient id="tempColumnGradient" gradientUnits="userSpaceOnUse" x1="0" y1="360" x2="0" y2="25">
+                        <stop offset="0%" id="col-G0" style="stop-color:#3b82f6;stop-opacity:1" />
+                        <stop offset="50%" id="col-G50" style="stop-color:#2ecc71;stop-opacity:1" />
+                        <stop offset="100%" id="col-G100" style="stop-color:#e74c3c;stop-opacity:1" />
                     </linearGradient>
+                    
+                    <!-- Неиспользуемый градиент для совместимости с логикой app.js -->
                     <linearGradient id="tempCubeGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-                        <stop offset="0%" style="stop-color:blue;stop-opacity:1" />
-                        <stop offset="50%" style="stop-color:green;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:red;stop-opacity:1" />
+                        <stop offset="0%" id="cube-G0" style="stop-color:#3b82f6;stop-opacity:1" />
+                        <stop offset="50%" id="cube-G50" style="stop-color:#2ecc71;stop-opacity:1" />
+                        <stop offset="100%" id="cube-G100" style="stop-color:#e74c3c;stop-opacity:1" />
                     </linearGradient>
-                    <linearGradient id="powerGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-                        <stop offset="0%" style="stop-color:green;stop-opacity:1" />
-                        <stop offset="50%" style="stop-color:yellow;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:red;stop-opacity:1" />
+
+                    <!-- Металлический блеск для куба и холодильников -->
+                    <linearGradient id="metal" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#999999"/>
+                        <stop offset="25%" stop-color="#eeeeee"/>
+                        <stop offset="50%" stop-color="#bbbbbb"/>
+                        <stop offset="75%" stop-color="#eeeeee"/>
+                        <stop offset="100%" stop-color="#888888"/>
+                    </linearGradient>
+
+                    <linearGradient id="metal-dark" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#777777"/>
+                        <stop offset="25%" stop-color="#cccccc"/>
+                        <stop offset="50%" stop-color="#999999"/>
+                        <stop offset="75%" stop-color="#cccccc"/>
+                        <stop offset="100%" stop-color="#666666"/>
                     </linearGradient>
                 </defs>
                                 
-                <!-- Куб -->
-                <rect x="80" y="360" width="140" height="140" rx="12" fill="#d0d0d0" stroke="#444" stroke-width="3"/>
-                <text x="150" y="455" text-anchor="middle" font-size="16">Куб</text>                
+                <!-- Единая труба колонны (окантовка) -->
+                <path d="M 150 380 L 150 40 Q 150 25 165 25 L 195 25 Q 210 25 210 40 L 210 300" 
+                      fill="none" stroke="#444" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
+                      
+                <!-- Единая труба колонны (градиент температуры) -->
+                <path d="M 150 380 L 150 40 Q 150 25 165 25 L 195 25 Q 210 25 210 40 L 210 300" 
+                      fill="none" stroke="url(#tempColumnGradient)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+
+                <!-- Куб (основание) -->
+                <rect x="80" y="360" width="140" height="140" rx="15" fill="url(#metal)" stroke="#444" stroke-width="3"/>
+                <!-- Жидкость в кубе для красоты -->
+                <rect x="83" y="430" width="134" height="67" rx="12" fill="#3b82f6" opacity="0.3" />
+                <text x="150" y="490" text-anchor="middle" font-size="16" font-weight="bold" fill="#444">Куб</text>                
+
+                <!-- Дефлегматор -->
+                <rect x="125" y="70" width="50" height="110" rx="6" fill="url(#metal-dark)" stroke="#444" stroke-width="3"/>
+                <text x="115" y="125" text-anchor="middle" transform="rotate(-90 115 125)" font-size="14" font-weight="bold" fill="#222">Дефлегматор</text>
+                
+                <!-- Холодильник -->
+                <rect x="185" y="70" width="50" height="200" rx="6" fill="url(#metal-dark)" stroke="#444" stroke-width="3"/>
+                <text x="245" y="170" text-anchor="middle" transform="rotate(90 245 170)" font-size="14" font-weight="bold" fill="#222">Холодильник</text>
+
+                <!-- Выход продукта (капельки) -->
+                <circle cx="210" cy="310" r="4" fill="#60a5fa" opacity="0.8">
+                    <animate attributeName="cy" values="310; 330" dur="1s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.8; 0" dur="1s" repeatCount="indefinite"/>
+                </circle>
+                <circle cx="210" cy="320" r="4" fill="#60a5fa" opacity="0.4">
+                    <animate attributeName="cy" values="320; 340" dur="1s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.4; 0" dur="1s" repeatCount="indefinite"/>
+                </circle>
+
+                <!-- Динамические Пузырьки -->
+                <g id="bubbles-group"></g>
+                <circle id="vapor" cx="150" cy="360" r="5" fill="orange" display="none"/>
 
                 <!-- Метки около куба -->
-                <text id="temp-cube-label" x="150" y="390" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
+                <text id="temp-cube-label" x="150" y="390" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke" font-weight="bold">
                     🌡️ <tspan id="temp-cube">--</tspan>°C
                 </text>
-                <text id="ten-power-label" x="150" y="420" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
+                <text id="ten-power-label" x="150" y="420" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke" font-weight="bold">
                     🔥 <tspan id="ten-power">--</tspan>%
                 </text>
-                <text id="fan-speed-percent-label" x="35" y="490" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
+                <text id="fan-speed-percent-label" x="40" y="490" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke" font-weight="bold">
                     ❄️ <tspan id="fan-speed-percent">--</tspan>%
                 </text>
-                <text id="radiator-temperature-label" x="35" y="460" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke">
+                <text id="radiator-temperature-label" x="40" y="460" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke" font-weight="bold">
                     🌡️ <tspan id="radiator-temperature">--</tspan>°C
                 </text>
 
-                <!-- Колонна -->
-                <rect x="140" y="140" width="20" height="220" fill="#e0e0e0" stroke="#444" stroke-width="3"/>
-
-                <!-- Соединение дефлегматора с холодильником -->
-                <rect x="140" y="25" width="20" height="60" rx="12" fill="#e0e0e0" stroke="#444" stroke-width="3"/>
-                <rect x="200" y="25" width="20" height="60" rx="12" fill="#e0e0e0" stroke="#444" stroke-width="3"/>
-                <rect x="140" y="25" width="80" height="20" rx="12" fill="#e0e0e0" stroke="#444" stroke-width="3"/>
-                
-                <!-- Дефлегматор -->
-                <rect x="130" y="70" width="40" height="110" rx="10" fill="#d0d0d0" stroke="#444" stroke-width="3"/>
-                <text x="285" y="35" text-anchor="middle" transform="rotate(-90 265 145)" font-size="14">Дефлегматор</text>
-                
-                <!-- Холодильник -->
-                <rect x="190" y="70" width="40" height="200" rx="10" fill="#c0c0c0" stroke="#444" stroke-width="3"/>
-                <text x="250" y="95" text-anchor="middle" font-size="14" transform="rotate(-90 265 145)">Холодильник</text>
-
-                <!-- Выход продукта -->
-                <line x1="210" y1="270" x2="210" y2="290" stroke="#444" stroke-width="3"/>
-                <circle cx="210" cy="290" r="5" fill="#444"/>
-
-                <circle id="vapor" cx="150" cy="360" r="5" fill="orange"/>
-
-                <!-- Метка температуры колонны между дефлегматором и холодильником -->
-                <text id="temp-column-label" x="180" y="20" text-anchor="middle" font-size="20" fill="#fff" stroke="#000" stroke-width="3" paint-order="stroke">
+                <!-- Метка температуры колонны -->
+                <text id="temp-column-label" x="180" y="18" text-anchor="middle" font-size="20" fill="#222" stroke="#fff" stroke-width="3" paint-order="stroke" font-weight="bold">
                     🌡️ <tspan id="temp-column">--</tspan>°C
                 </text>
-            </svg>            
+            </svg>
         </section>
 
         <section id="control-section">
@@ -163,11 +189,6 @@
                 <input type="range" id="manual-power" min="0" max="100" value="0">
                 <span id="manual-power-value">0%</span>
 
-                <select id="flow-direction-select">
-                    <option value="0">Головы</option>
-                    <option value="1">Тело</option>
-                    <option value="2">Хвосты</option>
-                </select>
             </div>
 
             <div id="auto-control" style="display:none;">
@@ -178,11 +199,21 @@
                 </select>
                 <button onclick="setAutoStage()">Выбрать этап</button>
             </div>
+
+            <div id="autoclave-control" style="display:none;">
+                <div>
+                    <label>Целевая температура: </label>
+                    <input type="number" id="autoclave-target-temp" step="0.1" min="20" max="130" style="width:80px;">
+                    <span>°C</span>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button id="autoclave-toggle-btn" onclick="toggleAutoclaveMode()">Включить</button>
+                </div>
+            </div>
         </section>
         
-        <!-- style="display:none;"-->
         <!-- Настройки коэффициентов -->
-        <section class="pid-controller" id="pid-autoclav-section">
+        <section class="pid-controller" id="pid-autoclave" style="display:none;">
             <h2>ПИД-регулятор автоклав</h2>
 
             <!-- Текущие измерения -->

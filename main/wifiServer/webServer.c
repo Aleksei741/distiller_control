@@ -120,7 +120,7 @@ httpd_handle_t start_webserver(void)
         httpd_uri_t distiller_status_uri = { .uri="/api/distiller/status", .method=HTTP_GET, .handler=get_status_distiler_control_handler };
         httpd_uri_t distiller_ten_uri = { .uri="/api/distiller/ten", .method=HTTP_GET, .handler=set_ten_power_handler };
         httpd_uri_t distiller_cube_temperature_uri = { .uri="/api/distiller/cube_temperature", .method=HTTP_GET, .handler=set_cube_temperature_handler };
-        httpd_uri_t distiller_mode_uri = { .uri="/api/distiller/mode", .method=HTTP_GET, .handler=set_cube_temperature_handler };
+        httpd_uri_t distiller_mode_uri = { .uri="/api/distiller/mode", .method=HTTP_GET, .handler=set_mode_distiler_control_handler };
         httpd_register_uri_handler(server, &distiller_status_uri);
         httpd_register_uri_handler(server, &distiller_ten_uri);
         httpd_register_uri_handler(server, &distiller_cube_temperature_uri);

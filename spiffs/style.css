@@ -65,59 +65,100 @@ section {
 /* Обёртка для каждой кнопки */
 .btn-wrap {
     position: relative;   /* нужно для абсолютного позиционирования меню */
+    width: 100%;
 }
 
 /* Контейнер для кнопок */
 .button-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Сетка 2x2 на маленьких экранах */
+    gap: 8px;
+    max-width: 800px;
     margin: 0 auto;
+}
+
+@media (min-width: 600px) {
+    .button-grid {
+        grid-template-columns: repeat(4, 1fr); /* 4 колонки на больших экранах */
+    }
 }
 
 /* Кнопки одинаковые */
 .button-grid button {
-    flex: 0 0 200px;
-    min-width: 200px;
-    padding: 2px 2px;
-    font-size: 16px;
-    border-radius: 0px;
+    width: 100%;
+    padding: 10px 4px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 6px;
     border: none;
-    background-color: #f0f0f0;
-    color: black;
+    background-color: #ffffff;
+    color: #333;
     cursor: pointer;
     box-sizing: border-box;
-    border: 2px solid #888;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+.button-grid button:hover {
+    background-color: #f0f4fb;
+    color: #0066cc;
+}
+
+.button-grid button:active {
+    transform: translateY(1px);
+    box-shadow: none;
 }
 
 /* Выпадающее меню */
 .submenu {
     display: none;
     position: absolute;
-    top: 100%;               /* прямо под кнопкой */
+    top: calc(100% + 4px); /* Отступ от кнопки */
     left: 0;
-    width: 200px;            /* совпадает с шириной кнопки */
-    background: #f0f0f0;
-    border-radius: 1px;
-    border: 1px solid #ccc;
+    min-width: 100%;
+    width: max-content;
+    max-width: 240px;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     overflow: hidden;
     z-index: 50;
-    color: black;
-    
+    color: #333;
+}
+
+/* Выравнивание меню для правых кнопок, чтобы не уходило за экран */
+.button-grid .btn-wrap:nth-child(even) .submenu {
+    left: auto;
+    right: 0;
+}
+@media (min-width: 600px) {
+    .button-grid .btn-wrap:nth-last-child(-n+2) .submenu {
+        left: auto;
+        right: 0;
+    }
 }
 
 /* Элементы меню */
 .submenu div {
-    padding: 2px;
-    margin: 1px;
+    padding: 10px 12px;
+    margin: 0;
     cursor: pointer;
-    white-space: nowrap;
-    background: linear-gradient(135deg, #93959e, #ced4da);
+    white-space: normal;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+    font-size: 14px;
+    text-align: left;
+    line-height: 1.3;
+}
+
+.submenu div:last-child {
+    border-bottom: none;
 }
 
 .submenu div:hover {
-    background: #dcdcdc;
+    background: #f0f4fb;
+    color: #0066cc;
 }
 
 .btn-wrap.show .submenu {
@@ -177,18 +218,26 @@ section {
   flex-wrap: wrap; /* если не помещаются — переходят на новую строку */
 }
 
-#manual-power {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  margin-top: 10px;
-  flex-wrap: wrap; /* если не помещаются — переходят на новую строку */
-}
-
 #manual-power-value {
   white-space: nowrap; /* предотвращает перенос текста */
   min-width: 50px; /* или фиксированная ширина */
+}
+
+#auto-control button,
+#autoclave-toggle-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    background-color: #2196F3;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#auto-control button:hover,
+#autoclave-toggle-btn:hover {
+    background-color: #1b7fcc;
 }
 
 /*=============================================================*/
@@ -196,10 +245,11 @@ section {
 
 .pid-controller {
   margin-top: 20px;
-  padding: 15px;
+  padding: 20px;
   border-radius: 10px;
-  background-color: #f5f7fa;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+color: #2c3e50;
 }
 
 .pid-controller h2 {
@@ -209,35 +259,66 @@ section {
 
 .pid-current-values,
 .pid-components {
-  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+  background-color: #ffffff;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
 }
 
 .pid-current-values p,
 .pid-components p {
-  margin: 4px 0;
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #34495e;
+}
+
+.pid-current-values span,
+.pid-components span {
+  font-weight: bold;
+  font-family: monospace;
+  font-size: 15px;
 }
 
 .pid-settings-form fieldset {
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: #ffffff;
 }
 
 .pid-settings-form legend {
   font-weight: bold;
-  margin-bottom: 5px;
+  color: #2c3e50;
+  background-color: #ffffff;
+  padding: 4px 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
 }
 
 .pid-settings-form label {
   display: flex;
   align-items: center;
-  margin: 8px 0;
-  gap: 8px;
+  justify-content: space-between;
+  margin: 10px 0;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #34495e;
 }
 
 .pid-settings-form input {
-  width: 80px;
-  padding: 4px;
+  width: 90px;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 14px;
 }
 
 .pid-settings-form button {

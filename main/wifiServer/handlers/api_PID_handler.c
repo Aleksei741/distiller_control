@@ -88,7 +88,7 @@ esp_err_t api_set_PID_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    if(get_dc_parameters(dc_param, &pid))
+    if(!get_dc_parameters(dc_param, &pid))
     {
         ESP_LOGE(TAG, "Failed to get_dc_parameters");
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to get PID parameters");

@@ -1,19 +1,79 @@
 //==========================================================================
-//Анимация
-let y = 360;
-function animateVapor() {
-    y -= 1;
-    if (y < 140) y = 360;
-    document.getElementById('vapor').setAttribute('cy', y);
-    requestAnimationFrame(animateVapor);
+//Animation & Visuals
+const bubbles = [];
+const maxBubbles = 15;
+const bubblesGroup = document.getElementById('bubbles-group');
+
+let currentHeaterPower = 0;
+
+function createBubble() {
+    if (bubbles.length >= maxBubbles || currentHeaterPower < 10) return;
+
+    const x = 80 + Math.random() * 140;
+    const r = 2 + Math.random() * 3;
+    const speed = 0.5 + (Math.random() * 0.5) + (currentHeaterPower / 200);
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', x);
+    circle.setAttribute('cy', 480);
+    circle.setAttribute('r', r);
+    circle.setAttribute('fill', 'rgba(255, 255, 255, 0.6)');
+    bubblesGroup.appendChild(circle);
+
+    bubbles.push({ el: circle, y: 480, speed });
 }
-animateVapor();
+
+function animateBubbles() {
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+        const b = bubbles[i];
+        b.y -= b.speed;
+        b.el.setAttribute('cy', b.y);
+        if (b.y < 360) {
+            bubblesGroup.removeChild(b.el);
+            bubbles.splice(i, 1);
+        }
+    }
+    if (Math.random() < (currentHeaterPower / 300)) createBubble();
+    requestAnimationFrame(animateBubbles);
+}
+animateBubbles();
+
+function tempToColor(temp) {
+    if (temp < 20) return '#3b82f6'; // blue
+    if (temp > 100) return '#e74c3c'; // red
+    if (temp << 60) {
+        const ratio = (temp - 20) / 40;
+        const r = Math.floor(59 + ratio * (46 - 59));
+        const g = Math.floor(130 + ratio * (204 - 130));
+        const b = Math.floor(246 + ratio * (113 - 246));
+        return `rgb(${r}, ${g}, ${b})`;
+    } else {
+        const ratio = (temp - 60) / 40;
+        const r = Math.floor(46 + ratio * (231 - 46));
+        const g = Math.floor(204 + ratio * (76 - 204));
+        const b = Math.floor(113 + ratio * (60 -113));
+        return `rgb(${r}, ${g}, ${b})`;
+    }
+}
+
+function updateVisuals(status) {
+    currentHeaterPower = status.ten_power;
+    const cubeColor = tempToColor(status.temperature_kube);
+    document.getElementById('cube-G50').style.stopColor = cubeColor;
+    document.getElementById('cube-G0').style.stopColor = tempToColor(status.temperature_kube - 10);
+    document.getElementById('cube-G100').style.stopColor = tempToColor(status.temperature_kube + 10);
+
+    const colColor = tempToColor(status.temperature_column);
+    document.getElementById('col-G50').style.stopColor = colColor;
+    document.getElementById('col-G0').style.stopColor = tempToColor(status.temperature_column - 10);
+    document.getElementById('col-G100').style.stopColor = tempToColor(status.temperature_column + 10);
+}
 
 //==========================================================================
 // Функции для работы с управлением
 let isUserSetManualPower = true;
 let isPauseManualPower = false; 
-let isUserSetMode = false;
+let isUserSetMode = true;
 let isPauseSetMode = false;
 
 //Переключатель режима управления
@@ -23,11 +83,16 @@ document.querySelectorAll('input[name="mode"]').forEach(el =>
     {
         document.getElementById('manual-control').style.display = 'none';
         document.getElementById('auto-control').style.display = 'none';
+        document.getElementById('autoclave-control').style.display = 'none';
         
         if (el.value === 'manual') 
         {
             document.getElementById('manual-control').style.display = 'block';
         } 
+        else if (el.value === 'autoclave')
+        {
+            document.getElementById('autoclave-control').style.display = 'block';
+        }
         else 
         {
             document.getElementById('auto-control').style.display = 'block';
@@ -82,6 +147,23 @@ function setAutoStage()
         .then(alert);
 }
 
+async function toggleAutoclaveMode() {
+    const btn = document.getElementById('autoclave-toggle-btn');
+    let newMode = 0; // manual
+    if (btn.innerText === "Включить") {
+        newMode = 3; // autoclave
+    }
+    
+    try {
+        const response = await fetch(`/api/distiller/mode?mode=${newMode}`);
+        if(response.ok) {
+            console.log(`success set mode: ${newMode}`);
+        }
+    } catch(err) {
+        console.error(err);
+    }
+}
+
 // Функция для программной установки значения БЕЗ вызова setManualPower
 function setControl(status) 
 {    
@@ -91,6 +173,18 @@ function setControl(status)
         document.getElementById('manual-power').value = Math.round(status.ten_power);
         document.getElementById('manual-power-value').innerText = Math.round(status.ten_power) + '%';
     }
+
+    const autoclaveBtn = document.getElementById('autoclave-toggle-btn');
+    if (autoclaveBtn) {
+        if (status.mode === 3) {
+            autoclaveBtn.innerText = "Выключить";
+            autoclaveBtn.style.backgroundColor = "#e74c3c";
+        } else {
+            autoclaveBtn.innerText = "Включить";
+            autoclaveBtn.style.backgroundColor = "";
+        }
+    }
+
     isPauseManualPower = false;
     isUserSetControl = true;
 }
@@ -140,6 +234,8 @@ async function updateDistillerStatus()
 
     const status = await getDistillerStatus();
     if (!status) return; // ошибка запроса
+    
+    updateVisuals(status);
 
     document.getElementById('temp-cube').textContent = status.temperature_kube.toFixed(2);
     document.getElementById('temp-column').textContent = status.temperature_column.toFixed(2);
@@ -451,6 +547,8 @@ function switchSections(current = "control") {
     statisticSection.style.display = 'none';
     tempSensorSection.style.display = 'none';
     folowDirectionSection.style.display = 'none';
+    const pidAutoclaveSection = document.getElementById('pid-autoclave');
+    if (pidAutoclaveSection) pidAutoclaveSection.style.display = 'none';
     
     if (current == "control") {
         statusSection.style.display = 'block';
@@ -461,6 +559,9 @@ function switchSections(current = "control") {
         tempSensorSection.style.display = 'block';
     } else if (current == "flowdirection") {
         folowDirectionSection.style.display = 'block';
+    } else if (current == 'pid-autoclave') {
+        const pidAutoclaveSection = document.getElementById('pid-autoclave');
+        if (pidAutoclaveSection) pidAutoclaveSection.style.display = 'block';
     }
 }
 
@@ -839,12 +940,10 @@ async function requestGetPIDParameters(module)
 {
     try
     {
-        const url = `/api/PID/get/?module=${module}`;
+        const url = `/api/PID/get/?name_module=${module}`;
         console.log("Получение параметров ПИД регулятора модуля ", module, ": ", url);
 
         const resp = await fetch(url);
-        console.log("Статус ответа:", resp.status);
-
         if (!resp.ok) 
         {
             console.error("HTTP ошибка:", resp.status, resp.statusText);
@@ -854,11 +953,13 @@ async function requestGetPIDParameters(module)
         const arrayBuffer = await resp.arrayBuffer();
         const byteLength = arrayBuffer.byteLength;
 
-        if(byteLength != 68)
+        if(byteLength != 72)
         {
-            console.error("Некорректная длина данных:", byteLength);
+            console.error("Некорректная длина данных PID:", byteLength);
             return false;
         }
+
+        const dataView = new DataView(arrayBuffer);
 
         const pid = {
             param: {
@@ -888,7 +989,7 @@ async function requestGetPIDParameters(module)
     } 
     catch (e) 
     {
-        console.error("Ошибка при получении настроек управления потоком:", e);
+        console.error("Ошибка при получении настроек PID:", e);
         return false;
     }
 }
@@ -898,11 +999,9 @@ function GUI_SetPIDAutoclave(section_name, param, value)
     const section = document.getElementById(section_name);
     if (!section) return;
 
-    
-
-    // Обновляем input
+    // Обновляем input если он не в фокусе (чтобы не перебивать ввод пользователя)
     const input = section.querySelector(`input[data-param="${param}"]`);
-    if (input) 
+    if (input && document.activeElement !== input) 
     {
         input.value = value;
         return;
@@ -920,27 +1019,62 @@ function GUI_SetPIDAutoclave(section_name, param, value)
     }
 }
 
-function GUI_SetPIDAutoclave(section_name, param, value)
-{
-    document.querySelector(`#${section_name} input[data-param="${param}"]`).value = value;
-}
-
 async function getPIDParameters(module) 
 {
-    pid = requestGetPIDParameters("autoclave_mode");
+    const pidPanel = document.getElementById('pid-autoclave');
+    const autoControl = document.getElementById('autoclave-control');
+    const isPidVisible = pidPanel && getComputedStyle(pidPanel).display !== 'none';
+    const isAutoVisible = autoControl && getComputedStyle(autoControl).display !== 'none';
 
-    GUI_SetPIDAutoclave("pid-autoclave", "Kp", pid.param.Kp);
-    GUI_SetPIDAutoclave("pid-autoclave", "Ki", pid.param.Ki);
-    GUI_SetPIDAutoclave("pid-autoclave", "Kd", pid.param.Kd);
-    GUI_SetPIDAutoclave("pid-autoclave", "out_min", pid.param.out_min);
-    GUI_SetPIDAutoclave("pid-autoclave", "out_max", pid.param.out_max);
-    GUI_SetPIDAutoclave("pid-autoclave", "dt", pid.param.dt);
-    GUI_SetPIDAutoclave("pid-autoclave", "integr_min", pid.param.integr_min);
-    GUI_SetPIDAutoclave("pid-autoclave", "integr_max", pid.param.integr_max);
-    GUI_SetPIDAutoclave("pid-autoclave", "d_filter", pid.param.d_filter);
+    if (!isPidVisible && !isAutoVisible) return;
+
+    const pid = await requestGetPIDParameters("autoclave_mode");
+    if (!pid) return;
+
+    if (isAutoVisible) {
+        const targetTempInput = document.getElementById('autoclave-target-temp');
+        if (targetTempInput && document.activeElement !== targetTempInput) {
+            targetTempInput.value = pid.status.setpoint.toFixed(1);
+        }
+    }
+
+    if (isPidVisible) {
+        GUI_SetPIDAutoclave("pid-autoclave", "Kp", pid.param.Kp);
+        GUI_SetPIDAutoclave("pid-autoclave", "Ki", pid.param.Ki);
+        GUI_SetPIDAutoclave("pid-autoclave", "Kd", pid.param.Kd);
+        GUI_SetPIDAutoclave("pid-autoclave", "out_min", pid.param.out_min);
+        GUI_SetPIDAutoclave("pid-autoclave", "out_max", pid.param.out_max);
+        GUI_SetPIDAutoclave("pid-autoclave", "dt", pid.param.dt);
+        GUI_SetPIDAutoclave("pid-autoclave", "integr_min", pid.param.integr_min);
+        GUI_SetPIDAutoclave("pid-autoclave", "integr_max", pid.param.integr_max);
+        GUI_SetPIDAutoclave("pid-autoclave", "d_filter", pid.param.d_filter);
+
+        GUI_SetPIDAutoclave("pid-autoclave", "p_term", pid.status.p_term);
+        GUI_SetPIDAutoclave("pid-autoclave", "i_term", pid.status.i_term);
+        GUI_SetPIDAutoclave("pid-autoclave", "d_term", pid.status.d_term);
+        GUI_SetPIDAutoclave("pid-autoclave", "setpoint", pid.status.setpoint);
+        GUI_SetPIDAutoclave("pid-autoclave", "measurement", pid.status.measurement);
+        GUI_SetPIDAutoclave("pid-autoclave", "heater_output", pid.status.output);
+    }
 }
 
+document.addEventListener('DOMContentLoaded', function() 
+{
+    setInterval(() => { getPIDParameters("autoclave_mode"); }, 1500);
 
+    const targetTempInput = document.getElementById('autoclave-target-temp');
+    if(targetTempInput) {
+        targetTempInput.addEventListener('change', async (e) => {
+            const temp = e.target.value;
+            try {
+                const response = await fetch(`/api/distiller/cube_temperature?temperature=${temp}`);
+                if(response.ok) console.log(`success set target temp: ${temp}`);
+            } catch(err) {
+                console.error(err);
+            }
+        });
+    }
+});
 
 async function getFollowDirectionSettings() 
 {

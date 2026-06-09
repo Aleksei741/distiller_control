@@ -199,7 +199,7 @@ bool get_dc_parameters(dc_parametes_e param, void *out_params)
     {
         PID_t pid = {0};
         autoclave_mode_get_pid(&pid);
-        memcpy(out_params, &pid.param, sizeof(PID_t));
+        memcpy(out_params, &pid, sizeof(PID_t));
         return true;
     }
 
