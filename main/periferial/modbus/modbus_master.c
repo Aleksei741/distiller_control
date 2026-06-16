@@ -70,7 +70,7 @@ esp_err_t modbus_rtu_master_init(void)
     }
 
     // Запускаем задачу
-    BaseType_t task_created = xTaskCreate(modbus_rtu_task, "modbus_rtu_task", 2048, NULL, 5, &modbus_task_handle);
+    BaseType_t task_created = xTaskCreate(modbus_rtu_task, "modbus_rtu_task", 4096, NULL, 5, &modbus_task_handle);
 
     if (task_created != pdTRUE)
     {
@@ -176,11 +176,11 @@ esp_err_t uart_init(void)
         .source_clk = UART_SCLK_DEFAULT,
     };
 
+    ESP_ERROR_CHECK(uart_driver_install(MODBUS_RTU_UART, 256, 0, 0, NULL, 0));
     ESP_ERROR_CHECK(uart_param_config(MODBUS_RTU_UART, &cfg));
     ESP_ERROR_CHECK(uart_set_pin(MODBUS_RTU_UART, MODBUS_RTU_TX_PIN,
                                  MODBUS_RTU_RX_PIN, MODBUS_RTU_RTS_PIN, UART_PIN_NO_CHANGE));
     ESP_ERROR_CHECK(uart_set_mode(MODBUS_RTU_UART, UART_MODE_RS485_HALF_DUPLEX));
-    ESP_ERROR_CHECK(uart_driver_install(MODBUS_RTU_UART, 256, 0, 0, NULL, 0));
 
     ESP_LOGI(TAG, "Modbus RTU initialized on UART%d", MODBUS_RTU_UART);
     return ESP_OK;
